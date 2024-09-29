@@ -1,0 +1,1957 @@
+# Những Quận/Huyện ghi nhận số ca mắc cao
+
+Từ 04/03/2024 đến 14/09/2024, Thành phố ghi nhận tổng cộng **725 ca** Sởi xác định + Sởi nghi lâm sàng. Trong đó các Quận/Huyện ghi nhận số ca mắc cao chiếm tỷ lệ như sau:
+
+| **Quận/Huyện** | **Số ca** | **Tỷ lệ %** |
+|----------------|-----------|-------------|
+| Bình Chánh     | 164       | 22,6%       |
+| Bình Tân       | 150       | 20,7%       |
+| TP. Thủ Đức    | 57        | 7,9%        |
+| Hóc Môn        | 49        | 6,8%        |
+| Quận 12        | 42        | 5,8%        |
+| Củ Chi         | 41        | 5,7%        |
+| Quận 8         | 37        | 5,1%        |
+
+Nhìn chung, chỉ số ***R~t~*** tại các Quận/Huyện có xu hướng giảm dần về mức 1 sau khi chiến dịch tiêm chủng được triển khai vào ngày 31/08/2024. Tuy nhiên, một số quận/huyện vẫn ghi nhận khoảng tin cậy của ***R~t~*** vượt trên mức 1, cho thấy nguy cơ số ca mắc có thể tiếp tục gia tăng trong thời gian tới. Hơn nữa, tình hình dịch bệnh tại mỗi quận/huyện có sự khác biệt đáng kể do các yếu tố đặc thù như mức độ bao phủ vắc xin, tần suất đưa trẻ đi tiêm chủng, cũng như lưu lượng di chuyển giữa các khu vực.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+library(readxl)
+library(EpiEstim)
+library(ggplot2)
+library(dplyr)
+library(janitor)
+library(tidyr)
+library(knitr)
+library(lubridate)
+library(slider)
+library(zoo)
+library(data.table)
+
+df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated.xlsx", sheet = "data")
+df1 <- as.data.frame(df1)
+
+df1 <- df1 %>% clean_names()
+
+df <- df1 %>% rename(dates = ngay_khoi_phat,
+                    ngaysinh = ngay_sinh,
+                    ngaynv = ngay_nhap_vien_kham,
+                    tiemchung = tinh_trang_tiem_chung,
+                    qh = qhth,
+                    gioi = gioi_tinh)
+
+df$qh <- as.factor(df$qh)
+
+# Lấy ngày nhập viện thay cho ngày khởi phát của các ca missing
+df$dates[is.na(df$dates)] <- df$ngaynv[is.na(df$dates)]
+
+df$cd <- ifelse(df$phan_loai_chan_doan == "Loại trừ sởi", NA, df$phan_loai_chan_doan)
+df <- df[,c("dates", "ngaysinh", "tiemchung", "cd", "qh")]
+
+# Loại những ca Sởi loại trừ
+df <- na.omit(df)
+```
+
+```{r}
+process_data <- function(mod_data) {
+  df_rt <- mod_data$R %>%
+    mutate(
+      dates = mod_data$dates[t_end],
+      q1_rt = `Quantile.0.025(R)`,
+      q3_rt = `Quantile.0.975(R)`,
+      rt = `Mean(R)`,
+      b_posterior = `Std(R)`^2 / `Mean(R)`,
+      a_posterior = `Mean(R)` / b_posterior,
+      pct = pgamma(1, shape = a_posterior, scale = b_posterior, lower.tail = FALSE),
+      pl = case_when(
+        pct > 0.9 ~ "tim",
+        pct > 0.75 & pct <= 0.9 ~ "do",
+        pct > 0.25 & pct <= 0.75 ~ "cam",
+        pct > 0.1 & pct <= 0.25 ~ "vang",
+        pct < 0.1 ~ "xanh"
+      )
+    )
+  
+  return(df_rt)
+}
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-06-10", ymd("2024-09-28")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 12, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 5, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 12, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 5, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+## Bình Chánh
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Bình Chánh")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81")
+```
+
+-   Từ ngày 11/06, số ca của huyện Bình Chánh bắt đầu liên tục (thõa điều kiện để ước tính **R~t~** theo phương pháp của Cori).
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-height: 5
+library(patchwork)
+
+df_filter <- filter(df_complete, dates >= "2024-06-11")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",  limits = c(ymd("2024-06-10", ymd("2024-09-28"))))
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-07-01", ymd("2024-09-28")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 12, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 5, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y =6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 12, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 5, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-07-01")
+p_hist <- ggplot(df_filter_plot, aes(x = dates)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",  limits = c(ymd("2024-07-01", ymd("2024-09-28"))))
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-07-01")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến **R~t~** từ 01/07 - 20/09:
+
+-   Từ 25/06 - 27/06: số ca nhiễm đang tăng.
+
+-   Từ 01/07 - 11/07: số ca nhiễm ổn định.
+
+-   Từ 12/07 - 14/07: số ca nhiễm có thể tăng.
+
+-   Từ 23/07 - 25/07: số ca nhiễm đang tăng.
+
+-   Từ 02/08 - 05/08: số ca nhiễm đang giảm
+
+-   Từ 08/08 - 25/08: số ca nhiễm đang tăng.
+
+-   Từ 31/08 - 15/09: số ca nhiễm đang giảm
+
+-   Từ 18/09 - 20/09: số ca nhiễm ổn định.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+  df_rt <- df_rt %>%
+    arrange(desc(dates))
+  
+  kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## Bình Tân
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Bình Tân")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+```
+
+-   Từ ngày 13/06/2024, số ca sởi của quận Bình Tân bắt đầu tăng liên tục (thỏa điều kiện theo phương pháp của Cori).
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-06-10", ymd("2024-09-28")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 25, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 12, ymin = 14, ymax = 25), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 21, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 25, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 12, ymin = 14, ymax = 25), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 21, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+library(patchwork)
+
+df_filter <- filter(df_complete, dates >= "2024-06-13")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates, y = I)) +
+  geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-06-10", ymd("2024-09-28"))))
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-07-08", ymd("2024-09-27")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 11, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 5, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 11, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 5, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+
+df_filter_plot <- filter(df_filter, dates >= "2024-07-06")
+p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",  limits = c(ymd("2024-07-08", ymd("2024-09-26"))))
+
+df_rt_plot <- filter(df_rt, dates >= "2024-07-06")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến R~t~ tại quận Bình Tân được tính từ 27/06/2024 - 21/09/2024:
+
+-   Từ 27/06 - 06/07: số ca nhiễm đang tăng.
+
+-   Từ 10/07 - 18/07: số ca nhiễm có thể giảm.
+
+-   Từ 25/07 - 16/08: số ca nhiễm đang tăng
+
+-   Từ 18/08 - 22/08 và 25/08 - 30/08: số ca nhiễm ổn định.
+
+-   Từ 31/08 - 03/09: số ca nhiễm có thể tăng.
+
+-   Từ 11/09 - 16/09: số ca nhiễm ổn định.
+
+-   Từ 18/09 - 20/09: số ca nhiễm có thể giảm.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## Hóc Môn
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Hóc Môn")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+```
+
+-   Từ ngày 11/08/2024, số ca sởi của huyện Hóc Môn bắt đầu tăng liên tục (thỏa điều kiện theo phương pháp của Cori).
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-11", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 12, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 7, ymin = 7, ymax = 12), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 10, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 12, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 7, ymin = 7, ymax = 12), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 10, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+library(patchwork)
+
+df_filter <- filter(df_complete, dates >= "2024-08-11")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-08-11", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-30", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 8, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 5, ymin = 6, ymax = 8), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 7, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 8, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 5, ymin = 6, ymax = 8), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 7, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-08-30")
+p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-08-30", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-08-30")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến **R~t~** tại huyện Hóc Môn được tính từ 25/08/2024 - 18/09/2024:
+
+-   Từ 25/08 - 07/09: số ca nhiễm đang tăng.
+
+-   Từ 13/09 - 14/09: số ca nhiễm có thể giảm.
+
+-   Từ 15/09 - 18/09: số ca nhiễm đang giảm.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## Quận 8
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Quận 8")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+```
+
+-   Từ ngày 15/08/2024, số ca sởi của quận 8 bắt đầu tăng liên tục (thỏa điều kiện theo phương pháp của Cori).
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-16", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 23, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 7, ymin = 13, ymax = 23), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 19, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 23, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 7, ymin = 13, ymax = 23), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 19, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+library(patchwork)
+
+df_filter <- filter(df_complete, dates >= "2024-08-15")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-08-16", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-09-02", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) +
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 8, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 5, ymin = 6, ymax = 8), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 7, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-09-02")
+p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-09-02", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-02")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến **R~t~** tại quận 8 được tính từ 29/08/2024 - 19/09/2024:
+
+-   Từ 29/08 - 08/09: số ca nhiễm đang tăng.
+
+-   Từ 10/09 - 15/09: số ca nhiễm ổn định.
+
+-   Từ 17/09 - 19/09: số ca nhiễm đang giảm.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## Củ Chi
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+
+df_qh <- filter(df, qh == "Củ Chi")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+```
+
+-   Từ ngày 13/08/2024, số ca sởi của huyện Củ Chi bắt đầu tăng liên tục (thỏa điều kiện theo phương pháp của Cori).
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-12", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 12, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 7, ymin = 7, ymax = 12), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 10, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 12, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 7, ymin = 7, ymax = 12), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 10, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+
+df_filter <- filter(df_complete, dates >= "2024-08-13")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-09-02", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 5, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 5, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-09-02")
+p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-02")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến **R~t~** tại huyện Củ Chi được tính từ 27/08/2024 - 21/09/2024:
+
+-   Từ 27/08 - 07/09: số ca nhiễm đang tăng.
+
+-   Từ 08/09 - 15/09: số ca nhiễm có thể tăng.
+
+-   Từ 16/09 - 18/09: số ca nhiễm ổn định.
+
+-   Từ 19/09 – 21/09: số ca nhiễm có thể giảm.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## Quận 12
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Quận 12")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+```
+
+-   Từ ngày 06/08/2024, số ca sởi của quận 12 bắt đầu tăng liên tục (thỏa điều kiện theo phương pháp của Cori).
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-05", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 20, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 7, ymin = 14, ymax = 20), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 17, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 20, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 7, ymin = 14, ymax = 20), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 17, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+
+df_filter <- filter(df_complete, dates >= "2024-08-06")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-08-05", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-25", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 5, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 5, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 5, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 5, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-08-25")
+p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-08-25", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-08-25")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến **R~t~** tại quận 12 được tính từ 20/08/2024 - 18/09/2024:
+
+-   Từ 20/08 - 26/08: số ca nhiễm đang tăng.
+
+-   Từ 28/08 - 03/09: số ca nhiễm có thể tăng.
+
+-   Từ 04/09 - 13/09: số ca nhiễm ổn định.
+
+-   Từ 14/09 – 18/09: số ca nhiễm có thể giảm.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## TP. Thủ Đức
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Quận 2" | qh == "Thủ Đức" | qh == "Quận 9")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+```
+
+-   Từ ngày 18/08/2024, số ca sởi của TP. Thủ Đức bắt đầu tăng liên tục (thỏa điều kiện theo phương pháp của Cori).
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-18", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 10, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 7, ymin = 8, ymax = 10), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 9, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 10, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 7, ymin = 8, ymax = 10), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 9, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+
+df_filter <- filter(df_complete, dates >= "2024-08-18")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-08-18", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-09-07", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 4, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 4, ymin = 3, ymax = 4), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 3.5, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-09-07")
+p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-09-07", ymd("2024-09-23"))))
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-07")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến **R~t~** tại TP. Thủ Đức được tính từ 27/08/2024 - 20/09/2024:
+
+-   Từ 27/08 - 15/09: số ca nhiễm đang tăng.
+
+-   Từ 16/09 - 19/09: số ca nhiễm có thể tăng.
+
+-   Ngày 20/09: số ca nhiễm ổn định.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## Tân Phú
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Tân Phú")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+
+ggplot(df_complete, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+```
+
+-   Từ ngày 24/08/2024, số ca sởi của quận Tân Phú bắt đầu tăng liên tục (thỏa điều kiện theo phương pháp của Cori).
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-08-24", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
+    y = 12, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 6, ymin = 7, ymax = 12), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 10, label = "Vaccination\nfor < 5y",
+           color = "black",
+           hjust = 0, size = 8 / .pt) +
+    
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 12, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 6, ymin = 7, ymax = 12), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 10, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 5
+
+df_filter <- filter(df_complete, dates >= "2024-08-24")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+
+# Biểu đồ đường cong dịch
+p_hist <- ggplot(df_filter, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+
+# Biểu đồ Rt
+p_rt <- plot_rt(df_rt)
+
+p_hist / p_rt
+```
+
+```{r}
+plot_rt <- function(data){
+
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[,c("pl", "id")] <- lapply(df_plot[,c("pl","id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = T)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  ggplot(df_plot, aes(x = dates)) +
+    # geom_line(aes(y = rt, color = pl)) +
+    geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt, fill = pl, group = id), 
+                alpha = 0.3) +
+    geom_line(data = data, mapping = aes(x = dates, y = rt, color = pl, 
+                                         group = 1),
+              linewidth = 1) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
+    labs(x = "Date", y = "Estimate Rt", fill = NULL, color = NULL) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "none") +
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week",
+                 limits = c(ymd("2024-09-09", ymd("2024-09-23")))) +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_fill_manual(values = col) +
+    scale_color_manual(values = col) + 
+    annotate(
+    "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
+    y = 7, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 3, ymin = 5, ymax = 7), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 0.5, y = 6, label = "Vaccination\nfor < 10y",
+           color = "black",
+           hjust = 0, size = 8 / .pt)
+}
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-heigt: 5
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-09-10")
+p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
+    geom_histogram(aes(y = I, fill = "Cases"), stat = "identity", binwidth = 1, width = 1) +
+    geom_line(aes(y = mva_14d, color = "Moving Average"), size = 1) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom") + 
+    scale_fill_manual(values = "#87A2FF") +
+    scale_color_manual(values = "#E78F81") + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-10")
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist / p_rt
+```
+
+Diễn tiến **R~t~** tại quận Tân Phú được tính từ 07/09/2024 - 19/09/2024:
+
+-   Từ 07/09 - 15/09: số ca nhiễm đang tăng.
+
+-   Từ 16/09 - 19/09: số ca nhiễm ổn định.
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::

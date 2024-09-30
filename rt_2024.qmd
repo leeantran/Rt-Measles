@@ -1,5 +1,23 @@
 # Sởi năm 2024
 
+## Lựa chọn Serial interval
+
+::: callout-note
+Để ước tính được ***R~t~*** thì cần phải xác định được Serial interval của Sởi, tuy nhiên trong báo cáo này thì nhóm nghiên cứu không tính được Serial interval từ bộ dữ liệu (vì không có đủ dữ liệu về tình trạng lây nhiễm giữa những ca bệnh). Do đó, nhóm nghiên cứu tham khảo y văn và chọn được Serial interval có trung bình là **14,5 ngày** và độ lệch chuẩn là **3,25 ngày** [@worden2020f]. Nhóm nghiên cứu sẽ dùng giá trị này để ước tính ***R~t~*** cho năm 2024 và năm 2019 để xem diễn tiến của Sởi.
+:::
+
+## Phân tích hệ số lây nhiễm R~t~
+
+::: callout-note
+-   Dữ liệu được sử dụng để ước tính **R~*t*~** là dữ liệu ca bệnh theo ngày. Dữ liệu đã loại bỏ những ca bệnh được chẩn đoán là **"Loại trừ Sởi"** và chỉ chọn những ca bệnh được chẩn đoán là **"Sởi xác định" và "Sởi nghi lâm sàng"** để ước tính.
+
+-   Báo cáo sử dụng **Ngày khởi phát** để ước tính **R~t~** cho năm 2024 và **Ngày nhập viện** để ước tính **R~t~** cho năm **2019** (vì không có dữ liệu về ngày khởi phát).
+
+-   Năm 2024, dữ liệu phân tích từ ngày 04/03/2024 đến ngày 23/09/2024 có tổng cộng 172 ca bệnh bị **thiếu dữ liệu** về **ngày khởi phát*,*** do đó báo cáo sử dụng **ngày nhập viện** thay thế để ước tính **R~t~**.
+
+-   Báo cáo trình bày kết quả theo **thời gian thực** về ***số ca mắc mới, đường trung bình động 14 ngày (Moving Average), hệ số lây nhiễm theo thời gian (R~t~) và sử dụng R~t~*** để đánh giá số ca nhiễm trên thực tế.
+:::
+
 ```{r}
 #| echo: false
 #| message: false
@@ -114,16 +132,16 @@ plot_rt <- function(data){
     annotate(
     "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
     y = 6, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 14, ymin = 4, ymax = 7), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2024-08-31") + 1, y = 6, label = "Vaccination\nfor < 5y",
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 14, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 5, label = "Vaccination\nfor < 5y",
            color = "black",
            hjust = 0, size = 7 / .pt) +
     
     annotate(
     "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
     y = 6, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 14, ymin = 4, ymax = 7), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2024-09-16") + 1, y = 6, label = "Vaccination\nfor < 10y",
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 14, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 5, label = "Vaccination\nfor < 10y",
            color = "black",
            hjust = 0, size = 7 / .pt)
 }
@@ -133,7 +151,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-height: 7
+#| fig-height: 10
 library(patchwork)
 
 df_complete <- df_complete %>%
@@ -156,44 +174,6 @@ p_hist <- ggplot(df_complete, aes(x = dates)) +
     scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
     scale_fill_manual(values = "#87A2FF") +
     scale_color_manual(values = "#E78F81")
-   
-
-
-
-
-df$ngaysinh <- as.Date(df$ngaysinh)
-
-df$age <- time_length(interval(df$ngaysinh, df$dates), "month")
-
-df <- df %>% mutate(agegr= case_when(
-    age < 9 ~ "< 9 months",
-    9 <= age & age < 18 ~ "9 - <18 months",
-    18 <= age & age <= 60 ~ "18 months - 5 years",
-    60 < age & age <= 120 ~ "> 5 years - 10 years",
-    age > 120  ~ "> 10 years"
-  ))
-  
-df$agegr <- factor(df$agegr, levels = c("> 10 years", "> 5 years - 10 years", "18 months - 5 years" ,"9 - <18 months" ,"< 9 months"))
-  
-df$dates <- as.Date(df$dates)
-p_agegr <- ggplot(df, aes(x = dates, fill = agegr)) +
-    geom_bar(stat = "count", position = "stack") +
-    labs(x = "Date", y = "Incidence",
-         title = "Age group by date of onset", fill = NULL) +
-    theme_classic() +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 12),
-          axis.text.y = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.title.y = element_text(size = 14), 
-          legend.position = "bottom") + 
-    scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
-  scale_fill_manual(values = c(
-    "< 9 months"  = "#0B4828",  
-   "9 - <18 months" ="#279337",    
-     "18 months - 5 years"  = "#65B32E",    
-    "> 5 years - 10 years"  = "#C9D870",          
-      "> 10 years" = "#E7E7B9"))        
-p_hist / p_agegr
 ```
 
 -   Từ 13/05, số ca bệnh bắt đầu xuất hiện mỗi tuần và bắt đầu liên tục từ ngày 30/05/2024. Từ ngày 13/05 thì số ca bệnh đã vượt qua khỏi đường ***Moving Average*** và đến khoảng 16/09 thì số ca mới bắt đầu giảm dưới ngưỡng này.
@@ -204,7 +184,7 @@ p_hist / p_agegr
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-height: 5
+#| fig-height: 10
 
 library(patchwork)
 
@@ -286,17 +266,17 @@ plot_rt <- function(data){
     scale_color_manual(values = col) + 
     annotate(
     "segment", x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"),
-    y = 6, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 13, ymin = 4, ymax = 6), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2024-08-31") + 1, y = 5, label = "Vaccination\nfor < 5y",
+    y = 3, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-08-31"), xmax = as.Date("2024-08-31") + 13, ymin = 2, ymax = 3), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-08-31") + 1, y = 2.5, label = "Vaccination\nfor < 5y",
            color = "black",
            hjust = 0, size = 9 / .pt) +
     
     annotate(
     "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
-    y = 6, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 13, ymin = 4, ymax = 6), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2024-09-16") + 1, y = 5, label = "Vaccination\nfor < 10y",
+    y = 3, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 13, ymin = 2, ymax = 3), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 1, y = 2.5, label = "Vaccination\nfor < 10y",
            color = "black",
            hjust = 0, size = 9 / .pt)
 }
@@ -306,7 +286,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-height: 5
+#| fig-height: 10
 
 library(patchwork)
 df_filter_plot <- filter(df_filter, dates >= "2024-07-12")
@@ -333,7 +313,7 @@ p_hist/p_rt
 
 Lúc số ca bắt đầu liên tục thì **R~t~** rất cao và đến tháng 10/07/2024 thì **R~t~** giảm gần bằng 1. Tuy nhiên, đến khoảng 22/07/2024 thì **R~t~** tăng trở lại và kéo dài đến gần giữa tháng 09/2024 mới giảm gần bằng 1.
 
-Theo USCDC, giai đoạn **R~t~** của Sởi năm 2024 diễn ra như sau [@cdc2024a]:
+Sử dụng bảng phân độ **R~t~** của USCDC, giai đoạn **R~t~** của Sởi năm 2024 diễn ra như sau [@cdc2024a]:
 
 -   Từ 10/06 - 08/07: số ca nhiễm **đang tăng,** trong khoảng thời gian này có khoảng 2 ngày thì số ca nhiễm trong giai đoạn **ổn định** (nhưng không đáng kể vì sau đó số ca nhiễm lại tăng).
 
@@ -358,3 +338,255 @@ df_rt <- df_rt %>%
 kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
 ```
 :::
+
+## Phân bố nhóm tuổi theo tuần
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 10
+library(patchwork)
+library(ggsci)
+df_complete$week_onset <- floor_date(df_complete$dates,
+                                     "week", week_start = 1) 
+df_complete$week_center <- df_complete$week_onset + days(3)
+
+p_hist <- ggplot(df_complete, aes(x = week_center)) +
+    geom_histogram(aes(y = I), fill = "#87A2FF", stat = "identity", binwidth = 1, width = 5) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12)) + 
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+
+df$ngaysinh <- as.Date(df$ngaysinh)
+df$age <- time_length(interval(df$ngaysinh, df$dates), "month")
+df <- df %>% mutate(agegr= case_when(
+    age < 9 ~ "< 9 months",
+    9 <= age & age < 18 ~ "9 - <18 months",
+    18 <= age & age <= 60 ~ "18 months - 5 years",
+    60 < age & age <= 120 ~ "> 5 years - 10 years",
+    age > 120  ~ "> 10 years"
+  ))
+df$agegr <- factor(df$agegr, levels = c("> 10 years", "> 5 years - 10 years", "18 months - 5 years" ,"9 - <18 months" ,"< 9 months"))
+df$dates <- as.Date(df$dates)
+
+df$week_onset <- floor_date(df$dates, "week", week_start = 1)
+
+df <- df |> 
+  filter(!is.na(week_onset), !is.na(agegr)) |> 
+  count(week_onset, agegr) |> 
+  group_by(week_onset) |> 
+  mutate(prop = n / sum(n)) |> 
+  data.frame()
+
+df$week_center <- df$week_onset + days(3)
+
+p_agegr <- ggplot(df, aes(x = week_center, y = prop, fill = agegr)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Date", y = "Probability",
+       title = "Age group by date of onset", fill = NULL) +
+  scale_fill_jco() +
+  theme_classic() + 
+  scale_x_date(date_labels = "%d %b", date_breaks = "1 week") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.position = "bottom")      
+p_hist / p_agegr
+```
+
+## Thời gian cửa sổ (Sliding window)
+
+Chúng ta có thể tùy chọn ***Sliding window (SW)*** khác nhau để thể hiện kết quả ước tính ***R~t~***. ***Sliding window*** là khoảng thời gian chúng ta dùng để xác định ***R~t~***, ví dụ nếu chúng ta chọn ***SW = 7*** thì giá trị ***R~t~*** sẽ được tính bằng trung bình của 7 ngày. Chúng ta vẽ thử 4 trường hợp của ***SW*** lần lượt là: mỗi ngày, mỗi tuần, mỗi 2 tuần và mỗi tháng để lựa chọn.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(readxl)
+library(EpiEstim)
+library(ggplot2)
+library(dplyr)
+library(janitor)
+library(tidyr)
+library(knitr)
+library(lubridate)
+library(patchwork)
+
+df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated.xlsx", sheet = "data")
+df1 <- as.data.frame(df1)
+
+df1 <- df1 %>% clean_names()
+
+df <- df1 %>% rename(dates = ngay_khoi_phat,
+                    ngaysinh = ngay_sinh,
+                    ngaynv = ngay_nhap_vien_kham,
+                    tiemchung = tinh_trang_tiem_chung,
+                    qh = qhth,
+                    gioi = gioi_tinh)
+
+
+
+# Lấy ngày nhập viện thay cho ngày khởi phát của các ca missing
+df$dates[is.na(df$dates)] <- df$ngaynv[is.na(df$dates)]
+
+df$cd <- ifelse(df$phan_loai_chan_doan == "Loại trừ sởi", NA, df$phan_loai_chan_doan)
+df <- df[,c("dates", "ngaysinh", "tiemchung", "cd", "qh")]
+
+# Loại những ca Sởi loại trừ
+df <- na.omit(df)
+
+df_convert <- df %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_filter <- filter(df_complete, dates >= "2024-05-30")
+
+mod_1w <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25
+    )
+  )
+)
+# Lấy dữ liệu ra để vẽ Rt
+df_rt_1w <- mod_1w$R
+df_rt_1w$dates <- mod_1w$dates[df_rt_1w$t_end]
+df_rt_1w$q1_rt <- df_rt_1w$`Quantile.0.025(R)`
+df_rt_1w$q3_rt <- df_rt_1w$`Quantile.0.975(R)`
+df_rt_1w$rt <- df_rt_1w$`Mean(R)`
+
+# SW = 1
+t_start <- seq(2, nrow(df_filter)-1)
+t_end <- t_start + 1
+
+mod_day <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+# Lấy dữ liệu ra để vẽ Rt
+df_rt_day <- mod_day$R
+df_rt_day$dates <- mod_day$dates[df_rt_day$t_end]
+df_rt_day$q1_rt <- df_rt_day$`Quantile.0.025(R)`
+df_rt_day$q3_rt <- df_rt_day$`Quantile.0.975(R)`
+df_rt_day$rt <- df_rt_day$`Mean(R)`
+
+# SW = 14
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod_2w <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+# Lấy dữ liệu ra để vẽ Rt
+df_rt_2w <- mod_2w$R
+df_rt_2w$dates <- mod_2w$dates[df_rt_2w$t_end]
+df_rt_2w$q1_rt <- df_rt_2w$`Quantile.0.025(R)`
+df_rt_2w$q3_rt <- df_rt_2w$`Quantile.0.975(R)`
+df_rt_2w$rt <- df_rt_2w$`Mean(R)`
+
+# SW = 28
+t_start <- seq(2, nrow(df_filter)-27)
+t_end <- t_start + 27
+
+mod_month <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+# Lấy dữ liệu ra để vẽ Rt
+df_rt_month <- mod_month$R
+df_rt_month$dates <- mod_month$dates[df_rt_month$t_end]
+df_rt_month$q1_rt <- df_rt_month$`Quantile.0.025(R)`
+df_rt_month$q3_rt <- df_rt_month$`Quantile.0.975(R)`
+df_rt_month$rt <- df_rt_month$`Mean(R)`
+
+# Biểu đồ cho 1 tuần
+p_1w <- ggplot(df_rt_1w, aes(x = dates)) +
+  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
+  geom_line(aes(y = rt), color = "darkorange") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
+  labs(x = "Day", y = "Rt", title = "1 Week") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) + 
+  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
+  scale_y_continuous(limits = c(0, 8))
+
+# Biểu đồ cho 1 ngày
+p_day <- ggplot(df_rt_day, aes(x = dates)) +
+  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
+  geom_line(aes(y = rt), color = "darkorange") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
+  labs(x = "Day", y = "Rt", title = "1 Day") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) + 
+  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
+  scale_y_continuous(limits = c(0, 10))
+
+# Biểu đồ cho 2 tuần
+p_2w <- ggplot(df_rt_2w, aes(x = dates)) +
+  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
+  geom_line(aes(y = rt), color = "darkorange") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
+  labs(x = "Day", y = "Rt", title = "2 Week") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) + 
+  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
+  scale_y_continuous(limits = c(0, 10))
+
+# Biểu đồ cho 1 tháng
+p_month <- ggplot(df_rt_month, aes(x = dates)) +
+  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
+  geom_line(aes(y = rt), color = "darkorange") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
+  labs(x = "Day", y = "Rt", title = "1 Month") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) +
+  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
+  scale_y_continuous(limits = c(0, 5))
+
+(p_day + p_1w) / (p_2w + p_month)
+```
+
+**SW = 14** đồng nghĩa với sliding window là 14 ngày (2 tuần) cho thấy ***R~t~*** có độ ổn định hơn, nên sẽ sử dụng ***SW = 14*** để ước tính ***R~t~***.

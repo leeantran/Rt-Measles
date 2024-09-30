@@ -7,47 +7,40 @@ editor: visual
 
 **R - Hệ số lây nhiễm (Reproduction number)**
 
--   ***Hệ số lây nhiễm*** ***R*** là số ca **thứ phát trung bình** do **một cá thể nhiễm bệnh** có thể lây truyền cho người khác **trong suốt thời gian họ có khả năng lây nhiễm** [@cori2013d].
+-   ***Hệ số lây nhiễm*** ***R*** là số ca **thứ phát trung bình** do **một cá thể nhiễm bệnh** có thể lây truyền cho người khác **trong suốt thời kì lây nhiễm** [@cori2013d].
 
 **R~0~ - Hệ số lây nhiễm cơ bản (Basic reproduction number)**
 
--   ***Hệ số lây nhiễm cơ bản,R~0~***, là số ca trung bình mà một người nhiễm bệnh có thể lây truyền trong một quần thể hoàn toàn cảm nhiễm, tức là khi cộng đồng đó chưa được áp dụng bất kỳ biện pháp phòng ngừa nào như tiêm vaccine, có khả năng miễn dịch tự nhiên hay các chính sách y tế công cộng can thiệp. [@vegvari2022c]
+-   ***Hệ số lây nhiễm cơ bản,R~0~***, là số ca thứ phát trung bình do một cá thể nhiễm bệnh có thể lây truyền cho người khác trong suốt thời kì lây nhiễm, trong một quần thể hoàn toàn cảm nhiễm. [@vegvari2022c]
 
--   Nếu ***R~0~*** **\> 1**, số ca bệnh tăng nhanh và có thể phát triển thành dịch. Nếu ***R~0~*** **\< 1**, dịch sẽ giảm dần và dừng lại.
+-   Nếu ***R~0~*** **\> 1**, tác nhân gây bệnh có thể phát triển thành dịch. Nếu ***R~0~*** **\< 1**, tác nhân có mức độ lây nhiễm thấp, khó có thể lây nhiễm rộng trong quần thể để gây dịch.
 
 **R~t~ - Hệ số lây nhiễm hiệu quả tại thời điểm (Effective reproduction number at time)**
 
--   ***Hệ số lây nhiễm hiệu quả tại thời điểm, R~t~*** là số ca trung bình mà **một người nhiễm bệnh** có thể lây truyền tại **một thời điểm nhất định**, khi mà một số người trong dân số **không còn cảm nhiễm**, nguyên do trong cộng đồng **đã thực hiện** các biện pháp can thiệp, đạt miễn dịch cộng đồng hoặc người dân thay đổi hành vi nguy cơ. [@practicaa]\
-    <!-- -->
+-   ***Hệ số lây nhiễm hiệu quả tại thời điểm, R~t~*** là số ca thứ phát trung bình do một cá thể nhiễm bệnh có thể lây truyền cho người khác trong suốt thời kì lây nhiễm, tại **một thời điểm nhất định**, khi quần thể **không hoàn toàn cảm nhiễm**. [@practicaa]\
 
-<!-- -->
+-   ***R~t~*** thể hiện mức độ lây nhiễm trong cộng đồng theo **thời gian thực** và giúp quan sát tình hình dịch bệnh có chiều hướng tăng, giảm, hoặc ổn định. Đồng thời, có thể dựa vào chỉ số này để đánh giá **hiệu quả** của các biện pháp kiểm soát đã được thực hiện. Nếu ***R~t~ duy trì \> 1***, mức độ lây nhiễm cao, dịch bệnh có thể bùng phát trở lại nếu đã áp dụng biện pháp can thiệp; nếu ***R~t~ duy trì \< 1***, mức độ lây nhiễm giảm, dịch bệnh đang được kiểm soát.
 
--   ***R~t~*** thể hiện khả năng lây nhiễm của dịch bệnh theo **thời gian thực** và giúp quan sát diễn tiến dịch bệnh có chiều hướng tăng, giảm, hoặc ổn định. Đồng thời, có thể dựa vào chỉ số này để đánh giá **hiệu quả** của các biện pháp kiểm soát đã được thực hiện. Nếu ***R~t~*** **\> 1**, số ca lây nhiễm sẽ tăng hoặc dịch bệnh có thể bùng phát trở lại nếu đã áp dụng biện pháp can thiệp; nếu ***R~t~*** **\< 1**, số ca bệnh giảm, dịch bệnh dần được kiểm soát.
+-   Ước lượng ***R~t~*** rất nhạy với phân phối thời gian thế hệ (generation interval).
 
-<!-- -->
+-   Khi ước tính ***R~t,~*** cần phải xác định **khoảng tin cậy (credible interval)** để bao hàm các giá trị khả thi của ***R~t~***.
 
--   Khi ước tính ***R~t,~*** cần phải xác định cả **khoảng tin cậy (credible interval)** để bao hàm các giá trị khả thi của ***R~t~***, từ đó nâng cao khả năng dự đoán tình hình dịch bệnh. Vì ***R~t~*** **biến thiên theo thời gian** và ảnh hưởng bởi nhiều yếu tố như biện pháp can thiệp hoặc báo cáo trễ, khoảng tin cậy (KTC) giúp hiểu rõ hơn về **khả năng lây nhiễm tại từng thời điểm** và **phân loại** xu hướng dịch bệnh thành các nhóm như tăng cao, giảm, hoặc ổn định. Do đó, cần tính **tỷ lệ phần trăm phân** **bố** của **khoảng tin cậy trên ngưỡng 1** để đánh giá diễn tiến ca bệnh.
-
-::: callout-note
-## Giai đoạn đánh giá R~t~ [@cdc2024]
-
-![](table.drawio.svg){width="526"}
-:::
-
--   **R~t~ có thể được định nghĩa theo 2 cách:** **R^*i*^~*t*~** (instantaneous reproduction number) và ***R^c^~t~*** (case reproduction number). Xem tài liệu sau để hiểu rõ hơn về 2 chỉ số này: <https://drthinhong.com/idm4b/rt.html>. Hiểu một cách đơn giản là ***R^i^~t~*** được ước tính theo thời gian thực và sử dụng dữ liệu trước thời điểm ***t***, còn ***R^c^~t~*** ước tính hồi cứu để đánh giá dịch đã xảy ra và mức độ hiệu quả của các chính sách, biện pháp can thiệp đã thực hiện.
+-   **R~t~ có thể ước lượng theo 2 phương pháp:** **R^*i*^~*t*~** (instantaneous reproduction number) và ***R^c^~t~*** (case reproduction number). Xem tài liệu sau để hiểu rõ hơn về 2 chỉ số này: <https://drthinhong.com/idm4b/rt.html>. Hiểu một cách đơn giản là ***R^i^~t~*** được ước tính theo thời gian thực và sử dụng dữ liệu trước thời điểm ***t***, còn ***R^c^~t~*** ước tính hồi cứu để đánh giá dịch đã xảy ra và mức độ hiệu quả của các chính sách, biện pháp can thiệp đã thực hiện.
 
 ::: callout-tip
 ## Ghi chú
 
-Đối với các phân tích theo thời gian thực nhằm đánh giá tác động của những thay đổi về chính sách, hành vi hoặc các yếu tố bên ngoài khác có ảnh hưởng đến quá trình lây truyền, *R^i^~t~* được xem là phù hợp hơn do thể hiện độ chính xác hơn về mặt thời gian.
+Đối với các phân tích theo thời gian thực nhằm đánh giá tác động của những can thiệp y tế công cộng, các khuyến cáo đề nghị sử dụng phương pháp *R^i^~t~* (instantaneous reproduction number) của Cori cùng cộng sự là phù hợp nhất [@gostic2020].
 :::
 
 ![](images/images_large_10.1177_09622802211037079-fig1.jpeg){width="3900"}
 
-::: callout-important
-## Kết luận
+-   CDC Mỹ hiện đang sử dụng R~t~ để đánh giá mức độ lây nhiễm cho các tác nhân như COVID-19 [@cdc2024], [đậu mùa khỉ](https://archive.cdc.gov/#/details?url=https://www.cdc.gov/poxvirus/mpox/cases-data/technical-report/technical-report-4-supplement.html)... Khuyến cáo của CDC sử dụng tỉ lệ phân phối khoảng tin cậy (KTC) của R~t~ để phân loại tình hình dịch bệnh như sau:
 
-Nếu đang ở giai đoạn sớm của dịch (dịch chưa xảy ra, toàn bộ dân số đều là cảm nhiễm) thì chúng ta sử dụng ***R~0~*** để ước tính. Nếu dịch đã xảy ra rồi và đang xuất hiện rộng trong dân số thì sử dụng ***R~t~*** để đánh giá [@vegvari2022b].
+::: callout-note
+## Phân độ R~t~ [@cdc2024]
+
+![](table.drawio.svg){width="526"}
 :::
 
 # Thời gian thế hệ (Generation and Serial interval)
@@ -91,210 +84,3 @@ $$
 -   Tối thiểu sau trung bình của Serival Interval.
 
 -   Tối thiểu 12 ca bệnh (ca bệnh ban đầu + 11) được quan sát kể từ khi bắt đầu dịch (trong một Sliding Window): để có được khoảng tin cậy trên là 0,3, sliding window phải bao gồm ít nhất 11 ca mắc mới.
-
-Chúng ta có thể tùy chọn ***Sliding window (SW)*** khác nhau để thể hiện kết quả ước tính ***R~t~***. ***Sliding window*** là khoảng thời gian chúng ta dùng để xác định ***R~t~***, ví dụ nếu chúng ta chọn ***SW = 7*** thì giá trị ***R~t~*** sẽ được tính bằng trung bình của 7 ngày. Chúng ta vẽ thử 4 trường hợp của ***SW*** lần lượt là: mỗi ngày, mỗi tuần, mỗi 2 tuần và mỗi tháng để lựa chọn.
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-
-library(readxl)
-library(EpiEstim)
-library(ggplot2)
-library(dplyr)
-library(janitor)
-library(tidyr)
-library(knitr)
-library(lubridate)
-library(patchwork)
-
-df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated.xlsx", sheet = "data")
-df1 <- as.data.frame(df1)
-
-df1 <- df1 %>% clean_names()
-
-df <- df1 %>% rename(dates = ngay_khoi_phat,
-                    ngaysinh = ngay_sinh,
-                    ngaynv = ngay_nhap_vien_kham,
-                    tiemchung = tinh_trang_tiem_chung,
-                    qh = qhth,
-                    gioi = gioi_tinh)
-
-
-
-# Lấy ngày nhập viện thay cho ngày khởi phát của các ca missing
-df$dates[is.na(df$dates)] <- df$ngaynv[is.na(df$dates)]
-
-df$cd <- ifelse(df$phan_loai_chan_doan == "Loại trừ sởi", NA, df$phan_loai_chan_doan)
-df <- df[,c("dates", "ngaysinh", "tiemchung", "cd", "qh")]
-
-# Loại những ca Sởi loại trừ
-df <- na.omit(df)
-
-df_convert <- df %>% group_by(dates) %>% 
-  summarise(I = n())
-
-df_complete <- df_convert %>%
-    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
-    replace_na(list(I = 0))
-
-df_complete$dates <- as.Date(df_complete$dates)
-
-df_filter <- filter(df_complete, dates >= "2024-05-30")
-
-mod_1w <- estimate_R(
-  incid = df_filter, 
-  method = "parametric_si", 
-  config = make_config(
-    list(
-      mean_si = 14.5, 
-      std_si = 3.25
-    )
-  )
-)
-# Lấy dữ liệu ra để vẽ Rt
-df_rt_1w <- mod_1w$R
-df_rt_1w$dates <- mod_1w$dates[df_rt_1w$t_end]
-df_rt_1w$q1_rt <- df_rt_1w$`Quantile.0.025(R)`
-df_rt_1w$q3_rt <- df_rt_1w$`Quantile.0.975(R)`
-df_rt_1w$rt <- df_rt_1w$`Mean(R)`
-
-# SW = 1
-t_start <- seq(2, nrow(df_filter)-1)
-t_end <- t_start + 1
-
-mod_day <- estimate_R(
-  incid = df_filter, 
-  method = "parametric_si", 
-  config = make_config(
-    list(
-      mean_si = 14.5, 
-      std_si = 3.25,
-      t_start = t_start,
-      t_end = t_end
-    )
-  )
-)
-
-# Lấy dữ liệu ra để vẽ Rt
-df_rt_day <- mod_day$R
-df_rt_day$dates <- mod_day$dates[df_rt_day$t_end]
-df_rt_day$q1_rt <- df_rt_day$`Quantile.0.025(R)`
-df_rt_day$q3_rt <- df_rt_day$`Quantile.0.975(R)`
-df_rt_day$rt <- df_rt_day$`Mean(R)`
-
-# SW = 14
-t_start <- seq(2, nrow(df_filter)-13)
-t_end <- t_start + 13
-
-mod_2w <- estimate_R(
-  incid = df_filter, 
-  method = "parametric_si", 
-  config = make_config(
-    list(
-      mean_si = 14.5, 
-      std_si = 3.25,
-      t_start = t_start,
-      t_end = t_end
-    )
-  )
-)
-
-# Lấy dữ liệu ra để vẽ Rt
-df_rt_2w <- mod_2w$R
-df_rt_2w$dates <- mod_2w$dates[df_rt_2w$t_end]
-df_rt_2w$q1_rt <- df_rt_2w$`Quantile.0.025(R)`
-df_rt_2w$q3_rt <- df_rt_2w$`Quantile.0.975(R)`
-df_rt_2w$rt <- df_rt_2w$`Mean(R)`
-
-# SW = 28
-t_start <- seq(2, nrow(df_filter)-27)
-t_end <- t_start + 27
-
-mod_month <- estimate_R(
-  incid = df_filter, 
-  method = "parametric_si", 
-  config = make_config(
-    list(
-      mean_si = 14.5, 
-      std_si = 3.25,
-      t_start = t_start,
-      t_end = t_end
-    )
-  )
-)
-
-# Lấy dữ liệu ra để vẽ Rt
-df_rt_month <- mod_month$R
-df_rt_month$dates <- mod_month$dates[df_rt_month$t_end]
-df_rt_month$q1_rt <- df_rt_month$`Quantile.0.025(R)`
-df_rt_month$q3_rt <- df_rt_month$`Quantile.0.975(R)`
-df_rt_month$rt <- df_rt_month$`Mean(R)`
-
-# Biểu đồ cho 1 tuần
-p_1w <- ggplot(df_rt_1w, aes(x = dates)) +
-  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
-  geom_line(aes(y = rt), color = "darkorange") +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
-  labs(x = "Day", y = "Rt", title = "1 Week") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) + 
-  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
-  scale_y_continuous(limits = c(0, 8))
-
-# Biểu đồ cho 1 ngày
-p_day <- ggplot(df_rt_day, aes(x = dates)) +
-  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
-  geom_line(aes(y = rt), color = "darkorange") +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
-  labs(x = "Day", y = "Rt", title = "1 Day") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) + 
-  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
-  scale_y_continuous(limits = c(0, 10))
-
-# Biểu đồ cho 2 tuần
-p_2w <- ggplot(df_rt_2w, aes(x = dates)) +
-  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
-  geom_line(aes(y = rt), color = "darkorange") +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
-  labs(x = "Day", y = "Rt", title = "2 Week") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) + 
-  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
-  scale_y_continuous(limits = c(0, 10))
-
-# Biểu đồ cho 1 tháng
-p_month <- ggplot(df_rt_month, aes(x = dates)) +
-  geom_ribbon(aes(ymin = q1_rt, ymax = q3_rt), fill = "lightcoral", alpha = 0.3) + 
-  geom_line(aes(y = rt), color = "darkorange") +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
-  labs(x = "Day", y = "Rt", title = "1 Month") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 8)) +
-  scale_x_date(date_labels = "%b %d", date_breaks = "1 week", limits = c(ymd("2024-05-30"), ymd("2024-09-14"))) +
-  scale_y_continuous(limits = c(0, 5))
-
-(p_day + p_1w) / (p_2w + p_month)
-```
-
-**SW = 14** đồng nghĩa với sliding window là 14 ngày (2 tuần) cho thấy ***R~t~*** có độ ổn định hơn, nên sẽ sử dụng ***SW = 14*** để ước tính ***R~t~***.
-
-::: callout-note
-## Serial Interval
-
-Để ước tính được ***R~t~*** thì cần phải xác định được Serial interval của Sởi, tuy nhiên trong báo cáo này thì nhóm nghiên cứu không tính được Serial interval từ bộ dữ liệu (vì không có đủ dữ liệu về tình trạng lây nhiễm giữa những ca bệnh). Do đó, nhóm nghiên cứu tham khảo y văn và chọn được Serial interval có trung bình là **14,5 ngày** và độ lệch chuẩn là **3,25 ngày** [@worden2020f]. Nhóm nghiên cứu sẽ dùng giá trị này để ước tính ***R~t~*** cho năm 2024 và năm 2019 để xem diễn tiến của Sởi.
-:::
-
-::: callout-note
-## Phân tích dữ liệu
-
--   Dữ liệu được sử dụng để ước tính **R~*t*~** là dữ liệu ca bệnh theo ngày. Dữ liệu đã loại bỏ những ca bệnh được chẩn đoán là **"Loại trừ Sởi"** và chỉ chọn những ca bệnh được chẩn đoán là **"Sởi xác định" và "Sởi nghi lâm sàng"** để ước tính.
-
--   Báo cáo sử dụng **Ngày khởi phát** để ước tính **R~t~** cho năm 2024 và **Ngày nhập viện** để ước tính **R~t~** cho năm **2019** (vì không có dữ liệu về ngày khởi phát).
-
--   Năm 2024, dữ liệu phân tích từ ngày 04/03/2024 đến ngày 23/09/2024 có tổng cộng 172 ca bệnh bị **thiếu dữ liệu** về **ngày khởi phát*,*** do đó báo cáo sử dụng **ngày nhập viện** thay thế để ước tính **R~t~**.
-
--   Báo cáo trình bày kết quả theo **thời gian thực** về ***số ca mắc mới, đường trung bình động 14 ngày (Moving Average), hệ số lây nhiễm theo thời gian (R~t~) và sử dụng R~t~*** để đánh giá số ca nhiễm trên thực tế.
-:::

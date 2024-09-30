@@ -171,7 +171,7 @@ ggplot(df_complete, aes(x = dates)) +
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-height: 5
+#| fig-height: 10
 library(patchwork)
 
 df_filter <- filter(df_complete, dates >= "2024-06-11")
@@ -270,7 +270,8 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
+
 library(patchwork)
 
 # Biểu đồ đường cong dịch
@@ -418,7 +419,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 df_filter <- filter(df_complete, dates >= "2024-06-13")
@@ -517,7 +518,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 
 df_filter_plot <- filter(df_filter, dates >= "2024-07-06")
 p_hist <- ggplot(df_filter_plot, aes(x = dates, y = I)) +
@@ -660,7 +661,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 df_filter <- filter(df_complete, dates >= "2024-08-11")
@@ -759,7 +760,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 # Biểu đồ đường cong dịch
@@ -897,7 +898,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 df_filter <- filter(df_complete, dates >= "2024-08-15")
@@ -988,7 +989,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 # Biểu đồ đường cong dịch
@@ -1039,7 +1040,7 @@ kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", 
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+
 
 df_qh <- filter(df, qh == "Củ Chi")
 
@@ -1127,7 +1128,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 
 df_filter <- filter(df_complete, dates >= "2024-08-13")
 
@@ -1217,7 +1218,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 # Biểu đồ đường cong dịch
@@ -1357,7 +1358,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 
 df_filter <- filter(df_complete, dates >= "2024-08-06")
 
@@ -1455,7 +1456,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 # Biểu đồ đường cong dịch
@@ -1595,7 +1596,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 
 df_filter <- filter(df_complete, dates >= "2024-08-18")
 
@@ -1685,7 +1686,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 # Biểu đồ đường cong dịch
@@ -1823,7 +1824,7 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 
 df_filter <- filter(df_complete, dates >= "2024-08-24")
 
@@ -1901,9 +1902,9 @@ plot_rt <- function(data){
     scale_color_manual(values = col) + 
     annotate(
     "segment", x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"),
-    y = 7, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 3, ymin = 5, ymax = 7), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2024-09-16") + 0.5, y = 6, label = "Vaccination\nfor < 10y",
+    y = 6, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2024-09-16"), xmax = as.Date("2024-09-16") + 3, ymin = 4, ymax = 6), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2024-09-16") + 0.5, y = 5, label = "Vaccination\nfor < 10y",
            color = "black",
            hjust = 0, size = 8 / .pt)
 }
@@ -1913,7 +1914,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-heigt: 5
+#| fig-heigt: 10
 library(patchwork)
 
 # Biểu đồ đường cong dịch

@@ -14,11 +14,11 @@ book:
     collapse-level: 1
   chapters:
     - index.qmd
-    - rt_2019.qmd
     - rt_2024.qmd
     - qhncc.qmd
     - qhnct.qmd
     - nx.qmd
+    - rt_2019.qmd
     - references.qmd
 
 bibliography: references.bib

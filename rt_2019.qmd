@@ -1,5 +1,7 @@
 # Sởi năm 2019
 
+## Phân tích hệ số lây nhiễm R~t~
+
 ```{r}
 #| warning: false
 #| message: false
@@ -142,8 +144,6 @@ ggplot(df_2018, aes(x = dates)) +
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-height: 7
-library(patchwork)
 
 df_filter <- filter(df_complete, dates >= "2018-09-01" & dates <= "2020-03-31")
 p_hist <- ggplot(df_filter, aes(x = dates)) +
@@ -161,57 +161,6 @@ p_hist <- ggplot(df_filter, aes(x = dates)) +
     scale_color_manual(values = "#E78F81")
 ```
 
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-#| fig-height: 7
-library(patchwork)
-
-df1 <- read_xlsx("C:/Users/Admin/Desktop/modelling/data/linelist_measles_hcmc.xlsx", sheet = "Sheet1")
-df1 <- as.data.frame(df1)
-
-df1 <- df1 %>% rename(dates = nv,
-                    ngaysinh = ns)
-df_2019 <- filter(df1, dates >= "2018-09-01" & dates <= "2020-03-31")
-
-
-df_2019$age <- time_length(interval(df_2019$ngaysinh, df_2019$dates), "month")
-
-df_2019 <- df_2019 %>% mutate(agegr= case_when(
-    age < 9 ~ "< 9 months",
-    9 <= age & age < 18 ~ "9 - <18 months",
-    18 <= age & age <= 60 ~ "18 months - 5 years",
-    60 < age & age <= 120 ~ "> 5 years - 10 years",
-    age > 120  ~ "> 10 years"
-  ))
-
-df_2019$agegr <- factor(df_2019$agegr, levels = c("> 10 years", "> 5 years - 10 years", "18 months - 5 years" ,"9 - <18 months" ,"< 9 months"))
-
-df_2019$dates <- as.Date(df_2019$dates)
-df_2019$ngaysinh <- as.Date(df_2019$ngaysinh)
-
-p_agegr <- ggplot(df_2019, aes(x = dates, fill = agegr)) +
-    geom_bar(stat = "count", position = "stack") +
-    labs(x = "Date", y = "Incidence",
-         title = "Age group by date of admission", fill = NULL) +
-    theme_classic() +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.x = element_text(size = 12),
-          axis.title.y = element_text(size = 12), 
-          legend.position = "bottom") + 
-    scale_x_date(date_labels = "%b %Y", date_breaks = "4 week") +
-  scale_fill_manual(values = c(
-    "< 9 months"  = "#0B4828",  
-   "9 - <18 months" ="#279337",    
-     "18 months - 5 years"  = "#65B32E",    
-    "> 5 years - 10 years"  = "#C9D870",          
-      "> 10 years" = "#E7E7B9"))
-
-p_hist / p_agegr
-```
-
 -   Số ca bắt đầu tăng liên tục từ tháng 09/2018, kéo dài đến những tháng đầu năm 2020. Vào tháng 02/2019 thì số ca được ghi nhận cao nhất (khoảng 80 ca), và sau đó số ca bắt đầu giảm đến tháng 07/2019 thì số ca có xu hướng đi ngang kéo dài đến đầu năm 2020.
 
 -   Về nhóm tuổi, đầu dịch thì nhóm tuổi \< 18 tháng chiếm khá cao, tuy nhiên sau 3 tháng (đến tháng 12/2018) thì nhóm từ 5 - 10 tuổi và trên 10 tuổi xuất hiện nhiều hơn, đặc biệt là vào thời gian số ca bệnh ghi nhận cao nhất (khoảng tháng 01 - 02/2019).
@@ -220,7 +169,7 @@ p_hist / p_agegr
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-height: 5
+#| fig-height: 10
 
 library(patchwork)
 
@@ -299,9 +248,9 @@ plot_rt <- function(data){
     scale_color_manual(values = col) + 
     annotate(
     "segment", x = as.Date("2018-10-17"), xend = as.Date("2018-10-17"),
-    y = 4.5, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2018-10-17"), xmax = as.Date("2019-01-01") + 15, ymin = 2.5, ymax = 4.5), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2018-10-17") + 1, y = 3.5, label = "Vaccination",
+    y = 3.5, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2018-10-17"), xmax = as.Date("2019-01-01") + 15, ymin = 2.5, ymax = 3.5), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2018-10-17") + 1, y = 3, label = "Vaccination",
            color = "black",
            hjust = 0, size = 12 / .pt)
 }
@@ -311,7 +260,7 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-height: 5
+#| fig-height: 10
 library(patchwork)
 
 df_filter_plot <- filter(df_filter, dates >= "2018-10-01")
@@ -354,7 +303,7 @@ kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", 
 
 Lúc số ca bắt đầu liên tục thì **R~t~** rất cao và đến tháng 11/2018 thì **R~t~** mới giảm gần bằng 1. Tuy nhiên, đến cuối tháng 01/2019 (thời gian ghi nhận số ca cao nhất) thì **R~t~** mới bằng 1 và tiếp tục giảm sau đó.
 
-Theo USCDC, giai đoạn **R~t~** của Sởi năm 2018-2019 diễn ra như sau [@cdc2024a]:
+Sử dụng bảng phân độ **R~t~**, giai đoạn **R~t~** của Sởi năm 2018-2019 diễn ra như sau [@cdc2024a]:
 
 -   Từ 09/2018 đến tháng 01/2019: số ca nhiễm **đang tăng**.
 
@@ -363,3 +312,84 @@ Theo USCDC, giai đoạn **R~t~** của Sởi năm 2018-2019 diễn ra như sau 
 -   Từ 09/2019 đến 01/2020: số ca nhiễm **có thể tăng** và đến 10/2019 thì số ca nhiễm **đang tăng,** sau đó **ổn định** dần.
 
 -   Từ tháng 01/2020 - 03/2020: số ca nhiễm **đang giảm.**
+
+## Phân bố nhóm tuổi theo tuần
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+df_filter <- filter(df_complete, dates >= "2018-09-01" & dates <= "2020-03-31")
+df_filter$week_onset <- floor_date(df_filter$dates,
+                                     "week", week_start = 1) 
+df_filter$week_center <- df_filter$week_onset + days(3)
+
+p_hist <- ggplot(df_filter, aes(x = week_center)) +
+    geom_histogram(aes(y = I), fill = "#87A2FF", stat = "identity", binwidth = 1, width = 5) +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12)) + 
+    scale_x_date(date_labels = "%d %b %Y", date_breaks = "4 week")
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 10
+library(patchwork)
+library(ggsci)
+
+df1 <- read_xlsx("C:/Users/Admin/Desktop/modelling/data/linelist_measles_hcmc.xlsx", sheet = "Sheet1")
+df1 <- as.data.frame(df1)
+
+df1 <- df1 %>% rename(dates = nv,
+                    ngaysinh = ns)
+
+df_2019 <- filter(df1, dates >= "2018-09-01" & dates <= "2020-03-31")
+
+
+df_2019$age <- time_length(interval(df_2019$ngaysinh, df_2019$dates), "month")
+
+df_2019 <- df_2019 %>% mutate(agegr= case_when(
+    age < 9 ~ "< 9 months",
+    9 <= age & age < 18 ~ "9 - <18 months",
+    18 <= age & age <= 60 ~ "18 months - 5 years",
+    60 < age & age <= 120 ~ "> 5 years - 10 years",
+    age > 120  ~ "> 10 years"
+  ))
+
+df_2019$agegr <- factor(df_2019$agegr, levels = c("> 10 years", "> 5 years - 10 years", "18 months - 5 years" ,"9 - <18 months" ,"< 9 months"))
+
+df_2019$dates <- as.Date(df_2019$dates)
+df_2019$ngaysinh <- as.Date(df_2019$ngaysinh)
+
+df_2019$week_onset <- floor_date(df_2019$dates, "week", week_start = 1)
+
+df_2019 <- df_2019 |> 
+  filter(!is.na(week_onset), !is.na(agegr)) |> 
+  count(week_onset, agegr) |> 
+  group_by(week_onset) |> 
+  mutate(prop = n / sum(n)) |> 
+  data.frame()
+
+df_2019 <- df_2019 %>% mutate(week_center = week_onset + days(3))
+
+p_agegr <- ggplot(df_2019, aes(x = week_center, y = prop, fill = agegr)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Date", y = "Probability",
+       title = "Age group by date of admission", fill = NULL) +
+  scale_fill_jco() +
+  theme_classic() + 
+  scale_x_date(date_labels = "%d %b %Y", date_breaks = "4 week") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.position = "bottom")      
+p_hist / p_agegr
+```

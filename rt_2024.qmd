@@ -286,8 +286,7 @@ plot_rt <- function(data){
 #| message: false
 #| warning: false
 #| fig-height: 10
-#| label: fig-rt
-#| fig-cap: "R~t~ của Thành phố"
+#| label: fig-tp
 
 library(patchwork)
 df_filter_plot <- filter(df_filter, dates >= "2024-07-12")
@@ -347,8 +346,7 @@ kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", 
 #| message: false
 #| warning: false
 #| fig-height: 10
-#| label: fig-agegr
-#| fig-cap: "Phân bố nhóm tuổi theo ngày khởi phát"
+#| label: fig-nt
 library(patchwork)
 library(ggsci)
 df_complete$week_onset <- floor_date(df_complete$dates,
@@ -404,10 +402,6 @@ p_hist / p_agegr
 ```
 
 -   Về nhóm tuổi, lúc số ca bắt đầu xuất hiện liên tục thì nhóm **dưới 9 tháng** và nhóm **từ 9 đến 18 tháng** chiếm đa số. Tuy nhiên, khoảng 1 tháng sau thì bệnh xuất hiện nhiều hơn ở nhóm **18 tháng đến 5 tuổi**, và từ tháng 08/2024 thì **nhóm \> 10 tuổi** nhiễm bệnh khá nhiều.
-
-## Nhận định chung
-
-**Đối với Thành phố,** số ca nhiễm vào tuần thứ 3 của tháng 09/2024 **đang giảm**, tương đồng khi số ca bệnh thực tế trong tuần thấp hơn đường **Moving Average**. Từ 31/08/2024, chiến dịch tiêm chủng cho trẻ \< 5 tuổi được thực hiện, và trong 1tuần sau chiến dịch thì số ca nhiễm vẫn **đang tăng**. Tuy nhiên, từ thứ 2 sau chiến dịch thì số ca nhiễm chuyển sang giai đoạn **ổn định** và tuần thứ 3 thì số ca nhiễm **đang giảm**.
 
 ## Thời gian cửa sổ (Sliding window)
 

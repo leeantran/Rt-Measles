@@ -272,7 +272,6 @@ plot_rt <- function(data){
 #| warning: false
 #| fig-heigt: 10
 #| label: fig-bc
-#| fig-cap: "R~t~ huyện Bình Chánh"
 
 library(patchwork)
 
@@ -1690,7 +1689,6 @@ plot_rt <- function(data){
 #| warning: false
 #| fig-heigt: 10
 #| label: fig-td
-#| fig-cap: "R~t~ TP. Thủ Đức"
 library(patchwork)
 
 # Biểu đồ đường cong dịch

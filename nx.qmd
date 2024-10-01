@@ -2,9 +2,9 @@
 
 **Đối với Thành phố:**
 
--   Số ca nhiễm vào tuần thứ 3 của tháng 09/2024 **đang giảm**, tương đồng khi số ca bệnh thực tế trong tuần thấp hơn đường **Moving Average**. Từ 31/08/2024, chiến dịch tiêm chủng cho trẻ \< 5 tuổi được thực hiện, và trong 1 tuần sau chiến dịch thì số ca nhiễm vẫn **đang tăng**. Tuy nhiên, từ thứ 2 sau chiến dịch thì số ca nhiễm chuyển sang giai đoạn **ổn định** và tuần thứ 3 thì số ca nhiễm **đang giảm**. (@fig-rt)
+-   Số ca nhiễm vào tuần thứ 3 của tháng 09/2024 **đang giảm**, tương đồng khi số ca bệnh thực tế trong tuần thấp hơn đường **Moving Average**. Từ 31/08/2024, chiến dịch tiêm chủng cho trẻ \< 5 tuổi được thực hiện, và trong 1 tuần sau chiến dịch thì số ca nhiễm vẫn **đang tăng**. Tuy nhiên, từ thứ 2 sau chiến dịch thì số ca nhiễm chuyển sang giai đoạn **ổn định** và tuần thứ 3 thì số ca nhiễm **đang giảm**. (@fig-tp)
 
--   Thời gian đầu thì các nhóm \< 9 tháng và nhóm từ 9 đến 18 tháng chiếm khá cao. Tuy nhiên từ tháng 6 thì các nhóm tuổi lớn hơn xuất hiện nhiều hơn và từ cuối tháng 7 thì bắt đầu có nhiều ca \> 10 tuổi. (@fig-agegr).
+-   Thời gian đầu thì các nhóm \< 9 tháng và nhóm từ 9 đến 18 tháng chiếm khá cao. Tuy nhiên từ tháng 6 thì các nhóm tuổi lớn hơn xuất hiện nhiều hơn và từ cuối tháng 7 thì bắt đầu có nhiều ca \> 10 tuổi. (@fig-nt)
 
 **Đối với Quận/Huyện**:
 

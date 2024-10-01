@@ -63,7 +63,6 @@ df <- na.omit(df)
 #| warning: false
 #| message: false
 #| label: fig-tb
-#| fig-cap: "Số ca mắc Sởi quận Tân Bình"
 
 df_qh <- filter(df, qh == "Tân Bình")
 

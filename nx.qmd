@@ -1,9 +1,13 @@
 # Nhận định chung
 
-**Đối với Thành phố,** số ca nhiễm vào tuần thứ 3 của tháng 09/2024 **đang giảm**, tương đồng khi số ca bệnh thực tế trong tuần thấp hơn đường **Moving Average**. Từ 31/08/2024, chiến dịch tiêm chủng cho trẻ \< 5 tuổi được thực hiện, và trong 1tuần sau chiến dịch thì số ca nhiễm vẫn **đang tăng**. Tuy nhiên, từ thứ 2 sau chiến dịch thì số ca nhiễm chuyển sang giai đoạn **ổn định** và tuần thứ 3 thì số ca nhiễm **đang giảm**.
+**Đối với Thành phố:**
+
+-   Số ca nhiễm vào tuần thứ 3 của tháng 09/2024 **đang giảm**, tương đồng khi số ca bệnh thực tế trong tuần thấp hơn đường **Moving Average**. Từ 31/08/2024, chiến dịch tiêm chủng cho trẻ \< 5 tuổi được thực hiện, và trong 1 tuần sau chiến dịch thì số ca nhiễm vẫn **đang tăng**. Tuy nhiên, từ thứ 2 sau chiến dịch thì số ca nhiễm chuyển sang giai đoạn **ổn định** và tuần thứ 3 thì số ca nhiễm **đang giảm**. (@fig-rt)
+
+-   Thời gian đầu thì các nhóm \< 9 tháng và nhóm từ 9 đến 18 tháng chiếm khá cao. Tuy nhiên từ tháng 6 thì các nhóm tuổi lớn hơn xuất hiện nhiều hơn và từ cuối tháng 7 thì bắt đầu có nhiều ca \> 10 tuổi. (@fig-agegr).
 
 **Đối với Quận/Huyện**:
 
--   Trong tổng số các quận huyện ghi nhận số ca mắc sởi cao, các khu vực địa bàn như **quận Bình Tân, huyện Hóc Môn, quận 8 và quận 12** đang ghi nhận số ca nhiễm có diễn tiến giảm trong tuần thứ 3 của tháng 9/2024. Riêng huyện Bình Chánh, số ca nhiễm vào 2 tuần sau chiến dịch **đang giảm (R~t~ \< 1)**, tuy nhiên từ ngày 16/09 thì số ca nhiễm diễn tiến tăng trở lại **(R~t~ diễn tiến lên hơn 1).** Còn TP. Thủ Đức, khoảng giữa tháng 08 thì số ca bắt đầu tăng liên tục nên **R~t~** được ước tính sau đó 2 tuần. Từ 01/09 đến 16/09 số ca nhiễm **đang tăng**, tuần thứ 3 sau chiến dịch thì số ca nhiễm vẫn trong giai đoạn **có thể tăng** **(hiện tại R~t~ \> 1).**
+-   Trong tổng số các quận huyện ghi nhận số ca mắc sởi cao, các khu vực địa bàn như **quận Bình Tân, huyện Hóc Môn, quận 8 và quận 12** đang ghi nhận số ca nhiễm có diễn tiến giảm trong tuần thứ 3 của tháng 9/2024. Riêng huyện Bình Chánh, số ca nhiễm vào 2 tuần sau chiến dịch **đang giảm (R~t~ \< 1)**, tuy nhiên từ ngày 16/09 thì số ca nhiễm diễn tiến tăng trở lại **(R~t~ diễn tiến lên hơn 1)** (@fig-bc)**.** Còn TP. Thủ Đức, khoảng giữa tháng 08 thì số ca bắt đầu tăng liên tục nên **R~t~** được ước tính sau đó 2 tuần, từ 01/09 đến 16/09 số ca nhiễm **đang tăng**, tuần thứ 3 sau chiến dịch thì số ca nhiễm vẫn trong giai đoạn **có thể tăng** **(hiện tại R~t~ \> 1).** (@fig-td)
 
--   Các Quận/Huyện ghi nhận số ca mắc Sởi thấp thì không ước tính được **R~t~**, tuy nhiên số ca bệnh thực tế của các Quận/Huyện vẫn diễn tiến cao hơn đường **Moving Average**.
+-   Các Quận/Huyện ghi nhận số ca mắc Sởi thấp thì không ước tính được **R~t~**, tuy nhiên số ca bệnh thực tế của các Quận/Huyện vẫn diễn tiến cao hơn đường **Moving Average**. (@fig-tb)

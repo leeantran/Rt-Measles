@@ -13,7 +13,7 @@
 
 -   Báo cáo sử dụng **Ngày khởi phát** để ước tính **R~t~** cho năm 2024 và **Ngày nhập viện** để ước tính **R~t~** cho năm **2019** (vì không có dữ liệu về ngày khởi phát).
 
--   Năm 2024, dữ liệu phân tích từ ngày 04/03/2024 đến ngày 23/09/2024 có tổng cộng 172 ca bệnh bị **thiếu dữ liệu** về **ngày khởi phát*,*** do đó báo cáo sử dụng **ngày nhập viện** thay thế để ước tính **R~t~**.
+-   Năm 2024, dữ liệu phân tích từ ngày 04/03/2024 đến ngày 28/09/2024 có tổng cộng 210 ca bệnh bị **thiếu dữ liệu** về **ngày khởi phát*,*** do đó báo cáo sử dụng **ngày nhập viện** thay thế để ước tính **R~t~**.
 
 -   Báo cáo trình bày kết quả theo **thời gian thực** về ***số ca mắc mới, đường trung bình động 14 ngày (Moving Average), hệ số lây nhiễm theo thời gian (R~t~) và sử dụng R~t~*** để đánh giá số ca nhiễm trên thực tế.
 :::
@@ -35,7 +35,7 @@ library(slider)
 library(zoo)
 library(data.table)
 
-df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated.xlsx", sheet = "data")
+df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated_v2.xlsx", sheet = "data")
 df1 <- as.data.frame(df1)
 ```
 
@@ -149,10 +149,8 @@ plot_rt <- function(data){
 
 ```{r}
 #| echo: false
-#| warning: false
 #| message: false
-#| fig-height: 10
-library(patchwork)
+#| warning: false
 
 df_complete <- df_complete %>%
   mutate(mva_14d = slide_dbl(
@@ -319,11 +317,13 @@ Sử dụng bảng phân độ **R~t~** của USCDC, giai đoạn **R~t~** của
 
 -   Từ 10/07 - 21/07: số ca nhiễm **ổn định,** và khoảng ngày 19/07 thì **R~t~** chuyển sang **màu đỏ** nghĩa là số ca nhiễm **có thể tăng.**
 
--   Từ ngày 22/07 - 09/09: số ca nhiễm **đang tăng (R~t~** = 1.1, KTC: 0.94 - 1.28 vào ngày 09/09 có thể thấy KTC trên của **R~t~** còn trên 1 do đó số ca bệnh có thể tăng).
+-   Từ ngày 22/07 - 09/09: số ca nhiễm **đang tăng (R~t~** = 1.1, KTC: 0.95 - 1.29 vào ngày 09/09 có thể thấy KTC trên của **R~t~** còn trên 1 do đó số ca bệnh có thể tăng).
 
--   Từ ngày 10/09 - 13/09: số ca nhiễm **có thể tăng (màu đỏ)**.
+-   Từ ngày 10/09 - 15/09: số ca nhiễm **có thể tăng (màu đỏ)**.
 
--   Từ ngày 17/09 - 21/09: số ca nhiễm **đang giảm (màu xanh)** tương đồng với số ca thực tế đang diễn tiến dưới đường ***Moving Average*** từ ngày 16/09.
+-   Từ ngày 17/09 - 19/09: số ca nhiễm **có thể giảm (màu vàng**.
+
+-   Từ ngày 20/09 - 28/09: số ca nhiễm **ổn định (màu cam)**.
 
 ::: {.callout-caution collapse="true"}
 ## Bảng kết quả của Rt

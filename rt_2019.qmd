@@ -92,17 +92,18 @@ plot_rt <- function(data){
           axis.title.x = element_text(size = 12),
           axis.title.y = element_text(size = 12),
           legend.position = "none") +
-    scale_x_date(date_labels = "%b %Y", date_breaks = "4 week", limits = c(ymd("2018-08-27", ymd("2020-04-13")))) +
+    scale_x_date(date_labels = "%d %b %Y", date_breaks = "4 week", limits = c(ymd("2018-08-27", ymd("2020-04-13")))) +
     scale_y_continuous(expand = c(0,0)) +
     scale_fill_manual(values = col) +
     scale_color_manual(values = col) + 
     annotate(
-    "segment", x = as.Date("2018-10-17"), xend = as.Date("2018-10-17"),
-    y = 25, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2018-10-17"), xmax = as.Date("2019-01-01") + 15, ymin = 17, ymax = 26), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2018-10-17") + 1, y = 23, label = "Vaccination",
+    "segment", x = as.Date("2018-12-01"), xend = as.Date("2018-12-01"),
+    y = 26, yend = 0, color = "black", size = 1) +
+  geom_rect(aes(xmin = as.Date("2018-12-01"), xmax = as.Date("2019-01-30"), ymin = 17, ymax = 26), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2018-12-01") + 1, y = 23, label = "MR\n for < 5y",
            color = "black",
-           hjust = 0, size = 12 / .pt)
+           hjust = 0, size = 7 / .pt) +
+  annotate("segment", x = as.Date("2019-01-30"), xend = as.Date("2019-01-30"), y = 26, yend = 0, color = "black", size = 1)
 }
 ```
 
@@ -130,12 +131,9 @@ ggplot(df_2018, aes(x = dates)) +
           axis.title.x = element_text(size = 12),
           axis.title.y = element_text(size = 12),
           legend.position = "bottom") + 
-    scale_x_date(date_labels = "%b %Y", date_breaks = "2 week") +
+    scale_x_date(date_labels = "%d %b %Y", date_breaks = "2 week") +
     scale_fill_manual(values = "#87A2FF") +
     scale_color_manual(values = "#E78F81")
-   
-
-
 ```
 
 -   Theo dữ liệu thì dịch Sởi năm 2019, số ca bắt đầu tăng liên tục từ **tháng 09/2018**, do đó **R~t~** sẽ được ước tính từ **tháng 09/2018** đến **tháng 03/2020**.
@@ -156,7 +154,7 @@ p_hist <- ggplot(df_filter, aes(x = dates)) +
           axis.title.x = element_text(size = 12),
           axis.title.y = element_text(size = 12),
           legend.position = "bottom") + 
-    scale_x_date(date_labels = "%b %Y", date_breaks = "4 week") +
+    scale_x_date(date_labels = "%d %b %Y", date_breaks = "4 week") +
     scale_fill_manual(values = "#87A2FF") +
     scale_color_manual(values = "#E78F81")
 ```
@@ -208,7 +206,7 @@ p_hist <- ggplot(df_filter, aes(x = dates)) +
           legend.position = "bottom") + 
     scale_fill_manual(values = "#87A2FF") +
     scale_color_manual(values = "#E78F81") +
-    scale_x_date(date_labels = "%b %Y", date_breaks = "4 week",
+    scale_x_date(date_labels = "%d %b %Y", date_breaks = "4 week",
                  limits = c(ymd("2018-08-27", ymd("2020-04-13"))))
 
 # Biểu đồ Rt
@@ -241,18 +239,21 @@ plot_rt <- function(data){
           axis.title.x = element_text(size = 14),
           axis.title.y = element_text(size = 14),
           legend.position = "none") +
-    scale_x_date(date_labels = "%b %Y", date_breaks = "4 week",
+    scale_x_date(date_labels = "%d %b %Y", date_breaks = "4 week",
                  limits = c(ymd("2018-10-01", ymd("2020-04-13")))) +
     scale_y_continuous(expand = c(0,0)) +
     scale_fill_manual(values = col) +
     scale_color_manual(values = col) + 
     annotate(
-    "segment", x = as.Date("2018-10-17"), xend = as.Date("2018-10-17"),
+    "segment", x = as.Date("2018-12-01"), xend = as.Date("2018-12-01"),
     y = 3.5, yend = 0, color = "black", size = 1) +
-  geom_rect(aes(xmin = as.Date("2018-10-17"), xmax = as.Date("2019-01-01") + 15, ymin = 2.5, ymax = 3.5), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2018-10-17") + 1, y = 3, label = "Vaccination",
+  geom_rect(aes(xmin = as.Date("2018-12-01"), xmax = as.Date("2019-01-30"), ymin = 2.5, ymax = 3.5), fill = "#42CAFD") +
+  annotate("text", x = as.Date("2018-12-01") + 1, y = 3, label = "MR\n for < 5y",
            color = "black",
-           hjust = 0, size = 12 / .pt)
+           hjust = 0, size = 7 / .pt) +
+    annotate(
+    "segment", x = as.Date("2019-01-30"), xend = as.Date("2019-01-30"),
+    y = 3.5, yend = 0, color = "black", size = 1)
 }
 ```
 
@@ -276,7 +277,7 @@ p_hist <- ggplot(df_filter_plot, aes(x = dates)) +
           legend.position = "bottom") + 
     scale_fill_manual(values = "#87A2FF") +
     scale_color_manual(values = "#E78F81") + 
-    scale_x_date(date_labels = "%b %Y", date_breaks = "4 week",
+    scale_x_date(date_labels = "%d %b %Y", date_breaks = "4 week",
                  limits = c(ymd("2018-10-01", ymd("2020-04-13"))))
 
 df_rt_plot <- filter(df_rt, dates >= "2018-10-01")

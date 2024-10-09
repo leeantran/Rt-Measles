@@ -100,9 +100,9 @@ plot_rt <- function(data){
     "segment", x = as.Date("2018-12-01"), xend = as.Date("2018-12-01"),
     y = 26, yend = 0, color = "black", size = 1) +
   geom_rect(aes(xmin = as.Date("2018-12-01"), xmax = as.Date("2019-01-30"), ymin = 17, ymax = 26), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2018-12-01") + 1, y = 23, label = "MR\n for < 5y",
+  annotate("text", x = as.Date("2018-12-01") + 3, y = 23, label = "MR\n 1 - 5y",
            color = "black",
-           hjust = 0, size = 7 / .pt) +
+           hjust = 0, size = 8 / .pt) +
   annotate("segment", x = as.Date("2019-01-30"), xend = as.Date("2019-01-30"), y = 26, yend = 0, color = "black", size = 1)
 }
 ```
@@ -248,9 +248,9 @@ plot_rt <- function(data){
     "segment", x = as.Date("2018-12-01"), xend = as.Date("2018-12-01"),
     y = 3.5, yend = 0, color = "black", size = 1) +
   geom_rect(aes(xmin = as.Date("2018-12-01"), xmax = as.Date("2019-01-30"), ymin = 2.5, ymax = 3.5), fill = "#42CAFD") +
-  annotate("text", x = as.Date("2018-12-01") + 1, y = 3, label = "MR\n for < 5y",
+  annotate("text", x = as.Date("2018-12-01") + 3, y = 3, label = "MR\n 1 - 5y",
            color = "black",
-           hjust = 0, size = 7 / .pt) +
+           hjust = 0, size = 8 / .pt) +
     annotate(
     "segment", x = as.Date("2019-01-30"), xend = as.Date("2019-01-30"),
     y = 3.5, yend = 0, color = "black", size = 1)

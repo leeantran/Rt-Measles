@@ -13,7 +13,7 @@
 
 -   Báo cáo sử dụng **Ngày khởi phát** để ước tính **R~t~** cho năm 2024 và **Ngày nhập viện** để ước tính **R~t~** cho năm **2019** (vì không có dữ liệu về ngày khởi phát).
 
--   Năm 2024, dữ liệu phân tích từ ngày 04/03/2024 đến ngày 28/09/2024 có tổng cộng 210 ca bệnh bị **thiếu dữ liệu** về **ngày khởi phát*,*** do đó báo cáo sử dụng **ngày nhập viện** thay thế để ước tính **R~t~**.
+-   Năm 2024, dữ liệu phân tích từ ngày 04/03/2024 đến ngày 08/10 có tổng cộng 210 ca bệnh bị **thiếu dữ liệu** về **ngày khởi phát*,*** do đó báo cáo sử dụng **ngày nhập viện** thay thế để ước tính **R~t~**.
 
 -   Báo cáo trình bày kết quả theo **thời gian thực** về ***số ca mắc mới, đường trung bình động 14 ngày (Moving Average), hệ số lây nhiễm theo thời gian (R~t~) và sử dụng R~t~*** để đánh giá số ca nhiễm trên thực tế.
 :::
@@ -35,7 +35,7 @@ library(slider)
 library(zoo)
 library(data.table)
 
-df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated_v2.xlsx", sheet = "data")
+df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated_v3.xlsx", sheet = "data")
 df1 <- as.data.frame(df1)
 ```
 
@@ -46,26 +46,43 @@ df1 <- as.data.frame(df1)
 df1 <- df1 %>% clean_names()
 
 df <- df1 %>% rename(dates = ngay_khoi_phat,
-                    ngaysinh = ngay_sinh,
-                    ngaynv = ngay_nhap_vien_kham,
-                    tiemchung = tinh_trang_tiem_chung,
-                    qh = qhth,
-                    gioi = gioi_tinh)
+                     ngaysinh = ngay_sinh,
+                     ngaynv = ngay_nhap_vien_kham,
+                     ngaybc = thoi_gian_bao_cao,
+                     tiemchung = tinh_trang_tiem_chung,
+                     qh = qhth,
+                     gioi = gioi_tinh)
 
-# Lấy ngày nhập viện thay cho ngày khởi phát của các ca missing
-df$dates[is.na(df$dates)] <- df$ngaynv[is.na(df$dates)]
+df$cd <- ifelse(df$phan_loai_chan_doan == "Loại trừ sởi", NA, df$phan_loai_chan_doan)
+
+df <- df[,c("dates", "ngaynv", "ngaybc", "cd", "qh", "ngaysinh")]
+
+df_kpbc <- df[!is.na(df$cd), c("dates", "ngaynv", "ngaybc", "ngaysinh", "qh")]
+
+df_kpbc$delay <- time_length(interval(df_kpbc$dates,
+                                      df_kpbc$ngaybc), "day")
+
+df_kpbc_nor <- filter(df_kpbc, delay >= 0 & delay <= 9)
+mean(df_kpbc_nor$delay)
+
+df_kpbc_abnor1 <- filter(df_kpbc, delay < 0)
+df_kpbc_abnor2 <- filter(df_kpbc, delay > 9)
+df_kpbc_missing <- filter(df_kpbc, is.na(dates))
+
+df_kpbc_abnor1 <- df_kpbc_abnor1 %>%
+  mutate(dates = ngaybc - days(3))
+
+df_kpbc_abnor2 <- df_kpbc_abnor2 %>%
+  mutate(dates = ngaybc - days(3))
+
+df_kpbc_missing <- df_kpbc_missing %>%
+  mutate(dates = ngaybc - days(3))
+
+df <- bind_rows(df_kpbc_nor, df_kpbc_abnor1,
+                df_kpbc_abnor2, df_kpbc_missing)
 ```
 
 ```{r}
-#| echo: false
-#| message: false
-#| warning: false
-df$cd <- ifelse(df$phan_loai_chan_doan == "Loại trừ sởi", NA, df$phan_loai_chan_doan)
-df <- df[,c("dates", "ngaysinh", "tiemchung", "cd", "qh")]
-
-# Loại những ca Sởi loại trừ
-df <- na.omit(df)
-
 df_convert <- df %>% group_by(dates) %>% 
   summarise(I = n())
 
@@ -346,22 +363,24 @@ kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", 
 #| message: false
 #| warning: false
 #| fig-height: 10
+#| fig-width: 8
 #| label: fig-nt
 library(patchwork)
 library(ggsci)
 df_complete$week_onset <- floor_date(df_complete$dates,
                                      "week", week_start = 1) 
-df_complete$week_center <- df_complete$week_onset + days(3)
 
-p_hist <- ggplot(df_complete, aes(x = week_center)) +
-    geom_histogram(aes(y = I), fill = "#87A2FF", stat = "identity", binwidth = 1, width = 5) +
+df_complete$week <- ifelse(df_complete$week_onset >= "2024-03-04", 10 + as.integer(difftime(df_complete$week_onset, "2024-03-04", units = "weeks")))
+
+p_hist <- ggplot(df_complete, aes(x = week)) +
+    geom_histogram(aes(y = I), fill = "#87A2FF", stat = "identity", binwidth = 1.5, width = 2) +
     labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
     theme_classic() +
     theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
           axis.text.y = element_text(size = 10),
           axis.title.x = element_text(size = 12),
           axis.title.y = element_text(size = 12)) + 
-    scale_x_date(date_labels = "%b %d", date_breaks = "1 week")
+    scale_x_continuous(breaks = seq(10,40,1))
 
 df$ngaysinh <- as.Date(df$ngaysinh)
 df$age <- time_length(interval(df$ngaysinh, df$dates), "month")
@@ -377,31 +396,83 @@ df$dates <- as.Date(df$dates)
 
 df$week_onset <- floor_date(df$dates, "week", week_start = 1)
 
-df <- df |> 
-  filter(!is.na(week_onset), !is.na(agegr)) |> 
-  count(week_onset, agegr) |> 
-  group_by(week_onset) |> 
-  mutate(prop = n / sum(n)) |> 
-  data.frame()
+df$week <- ifelse(df$week_onset >= "2024-03-04", 10 + as.integer(difftime(df$week_onset, "2024-03-04", units = "weeks")))
 
-df$week_center <- df$week_onset + days(3)
+df_plot <- df |> 
+    group_by(week) |> 
+    count(agegr) |> 
+    as.data.frame() |> 
+    complete(week, agegr, fill = list(n = 0)) |> 
+    arrange(week) |>
+    group_by(agegr) |> 
+    mutate(cumn = cumsum(n))
 
-p_agegr <- ggplot(df, aes(x = week_center, y = prop, fill = agegr)) +
-  geom_bar(stat = "identity") +
-  labs(x = "Date", y = "Probability",
-       title = "Age group by date of onset", fill = NULL) +
-  scale_fill_jco() +
-  theme_classic() + 
-  scale_x_date(date_labels = "%d %b", date_breaks = "1 week") +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
-        axis.text.y = element_text(size = 10),
-        axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 12),
-        legend.position = "bottom")      
+p_agegr <- ggplot(df_plot, aes(x = week, y = log(cumn), color = agegr)) +
+    geom_line(size = 1) +
+    scale_color_bmj() +
+    scale_y_continuous(expand = c(0, 0)) +
+    scale_x_continuous(breaks = seq(10,40,1)) +
+    labs(x = "Week onset", y = "Log cumulative case count", color = "Age group") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12))
+
 p_hist / p_agegr
 ```
 
 -   Về nhóm tuổi, lúc số ca bắt đầu xuất hiện liên tục thì nhóm **dưới 9 tháng** và nhóm **từ 9 đến 18 tháng** chiếm đa số. Tuy nhiên, khoảng 1 tháng sau thì bệnh xuất hiện nhiều hơn ở nhóm **18 tháng đến 5 tuổi**, và từ tháng 08/2024 thì **nhóm \> 10 tuổi** nhiễm bệnh khá nhiều.
+
+## Bản đồ ca mắc
+
+```{r}
+#| message: false
+#| warning: false
+
+library(sf)
+library(gganimate)
+library(gifski)
+
+vn_qh <- st_read(dsn = file.path("data", "gadm41_VNM.gpkg"), layer = "ADM_ADM_2")
+
+vn_qh_filter <- filter(vn_qh, NAME_1 == "Hồ Chí Minh")
+
+vn_qh_filter <- vn_qh_filter %>%
+  mutate(NAME_2 = case_when(
+    NAME_2 %in% c("Thủ Đức", "Quận 9", "Quận 2") ~ "Thành phố Thủ Đức",
+    TRUE ~ NAME_2
+  )) %>%
+  group_by(NAME_2) %>%
+  summarise(geom = st_union(geom))
+
+df_qh_date <- df %>%
+  group_by(qh, dates) %>%
+  summarise(case = n(), .groups = "drop")
+
+# Kết hợp dữ liệu
+map_data_date <- vn_qh_filter %>%
+  left_join(df_qh_date, by = c("NAME_2" = "qh"))
+
+# Vẽ bản đồ 
+p <- ggplot(data = map_data_date) +
+  geom_sf(aes(fill = case), color = "white", size = 0.3) +  
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 5,  # Màu sắc
+                         na.value = "gray90") + 
+  geom_sf_text(aes(label = NAME_2), size = 3, color = "black") +
+  labs(fill = "Số ca mắc", title = "Ngày: {frame_time}") +  
+  theme_minimal() +  
+  theme(axis.text = element_blank(), 
+        axis.ticks = element_blank(),
+        panel.grid = element_blank()) +
+  ease_aes('linear') +  # Hiệu ứng chuyển động
+  transition_time(dates) +
+  shadow_mark(past = TRUE, future = FALSE)
+
+# anim <- animate(p, nframes = 50, fps = 2)
+```
+
+![](map_animation.gif){ width=100% }
 
 ## Thời gian cửa sổ (Sliding window)
 

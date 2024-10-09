@@ -19,7 +19,7 @@ editor: visual
 
 -   ***Hệ số lây nhiễm hiệu quả tại thời điểm, R~t~*** là số ca thứ phát trung bình do một cá thể nhiễm bệnh có thể lây truyền cho người khác trong suốt thời kì lây nhiễm, tại **một thời điểm nhất định**, khi quần thể **không hoàn toàn cảm nhiễm**. [@practicaa]\
 
--   ***R~t~*** thể hiện mức độ lây nhiễm trong cộng đồng theo **thời gian thực** và giúp quan sát tình hình dịch bệnh có chiều hướng tăng, giảm, hoặc ổn định. Đồng thời, có thể dựa vào chỉ số này để đánh giá **hiệu quả** của các biện pháp kiểm soát đã được thực hiện. Nếu ***R~t~ duy trì \> 1***, mức độ lây nhiễm cao, dịch bệnh có thể bùng phát trở lại nếu đã áp dụng biện pháp can thiệp; nếu ***R~t~ duy trì \< 1***, mức độ lây nhiễm giảm, dịch bệnh đang được kiểm soát.
+-   ***R~t~*** thể hiện mức độ lây nhiễm trong cộng đồng theo **thời gian thực** và giúp quan sát tình hình dịch bệnh có chiều hướng tăng, giảm, hoặc ổn định. Đồng thời, có thể dựa vào chỉ số này để đánh giá **hiệu quả** của các biện pháp kiểm soát đã được thực hiện. Nếu ***R~t~ duy trì \> 1*** thì số ca có thể tăng, dịch bệnh có thể bùng phát trở lại; nếu ***R~t~ duy trì \< 1*** thì số ca có thể giảm, dịch bệnh đang được kiểm soát.
 
 -   Ước lượng ***R~t~*** rất nhạy với phân phối thời gian thế hệ (generation interval).
 

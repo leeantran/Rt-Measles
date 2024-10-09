@@ -4,13 +4,13 @@ Từ 04/03/2024 đến 28/09/2024, Thành phố ghi nhận tổng cộng **823 c
 
 | **Quận/Huyện** | **Số ca** | **Tỷ lệ %** |
 |----------------|-----------|-------------|
-| Bình Chánh     | 188       | 22,8%       |
-| Bình Tân       | 169       | 20,5%       |
-| TP. Thủ Đức    | 73        | 8,9%        |
-| Hóc Môn        | 56        | 6,8%        |
-| Quận 12        | 43        | 5,2%        |
-| Củ Chi         | 51        | 6,2%        |
-| Quận 8         | 40        | 4,9%        |
+| Bình Chánh     | 211       | 22%         |
+| Bình Tân       | 188       | 19,6%       |
+| TP. Thủ Đức    | 101       | 10,5%       |
+| Hóc Môn        | 59        | 6,2%        |
+| Quận 12        | 50        | 5,2%        |
+| Củ Chi         | 70        | 7,3%        |
+| Quận 8         | 43        | 4,5%        |
 
 Nhìn chung, chỉ số ***R~t~*** tại các Quận/Huyện có xu hướng giảm dần về mức 1 sau khi chiến dịch tiêm chủng được triển khai vào ngày 31/08/2024. Tuy nhiên, một số quận/huyện vẫn ghi nhận khoảng tin cậy của ***R~t~*** vượt trên mức 1, cho thấy nguy cơ số ca mắc có thể tiếp tục gia tăng trong thời gian tới. Hơn nữa, tình hình dịch bệnh tại mỗi quận/huyện có sự khác biệt đáng kể do các yếu tố đặc thù như mức độ bao phủ vắc xin, tần suất đưa trẻ đi tiêm chủng, cũng như lưu lượng di chuyển giữa các khu vực.
 
@@ -30,28 +30,46 @@ library(slider)
 library(zoo)
 library(data.table)
 
-df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated_v2.xlsx", sheet = "data")
+df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated_v3.xlsx", sheet = "data")
 df1 <- as.data.frame(df1)
 
 df1 <- df1 %>% clean_names()
 
 df <- df1 %>% rename(dates = ngay_khoi_phat,
-                    ngaysinh = ngay_sinh,
-                    ngaynv = ngay_nhap_vien_kham,
-                    tiemchung = tinh_trang_tiem_chung,
-                    qh = qhth,
-                    gioi = gioi_tinh)
-
-df$qh <- as.factor(df$qh)
-
-# Lấy ngày nhập viện thay cho ngày khởi phát của các ca missing
-df$dates[is.na(df$dates)] <- df$ngaynv[is.na(df$dates)]
+                     ngaysinh = ngay_sinh,
+                     ngaynv = ngay_nhap_vien_kham,
+                     ngaybc = thoi_gian_bao_cao,
+                     tiemchung = tinh_trang_tiem_chung,
+                     qh = qhth,
+                     gioi = gioi_tinh)
 
 df$cd <- ifelse(df$phan_loai_chan_doan == "Loại trừ sởi", NA, df$phan_loai_chan_doan)
-df <- df[,c("dates", "ngaysinh", "tiemchung", "cd", "qh")]
 
-# Loại những ca Sởi loại trừ
-df <- na.omit(df)
+df <- df[,c("dates", "ngaynv", "ngaybc", "cd", "qh", "ngaysinh")]
+
+df_kpbc <- df[!is.na(df$cd), c("dates", "ngaynv", "ngaybc", "ngaysinh", "qh")]
+
+df_kpbc$delay <- time_length(interval(df_kpbc$dates,
+                                      df_kpbc$ngaybc), "day")
+
+df_kpbc_nor <- filter(df_kpbc, delay >= 0 & delay <= 9)
+mean(df_kpbc_nor$delay)
+
+df_kpbc_abnor1 <- filter(df_kpbc, delay < 0)
+df_kpbc_abnor2 <- filter(df_kpbc, delay > 9)
+df_kpbc_missing <- filter(df_kpbc, is.na(dates))
+
+df_kpbc_abnor1 <- df_kpbc_abnor1 %>%
+  mutate(dates = ngaybc - days(3))
+
+df_kpbc_abnor2 <- df_kpbc_abnor2 %>%
+  mutate(dates = ngaybc - days(3))
+
+df_kpbc_missing <- df_kpbc_missing %>%
+  mutate(dates = ngaybc - days(3))
+
+df <- bind_rows(df_kpbc_nor, df_kpbc_abnor1,
+                df_kpbc_abnor2, df_kpbc_missing)
 ```
 
 ```{r}
@@ -1046,7 +1064,7 @@ kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", 
 #| message: false
 
 
-df_qh <- filter(df, qh == "Củ Chi")
+df_qh <- filter(df, qh == "Củ Chi" | qh == "CỦ CHI")
 
 df_convert <- df_qh %>% group_by(dates) %>% 
   summarise(I = n())

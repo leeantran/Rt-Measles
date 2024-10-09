@@ -2,19 +2,19 @@
 
 | **Quận/huyện** | **Số ca** | **Tỷ lệ %** |
 |----------------|-----------|-------------|
-| **Tân Bình**   | 23        | 3,03%       |
-| **Quận 7**     | 23        | 2,5%        |
-| **Nhà Bè**     | 19        | 2,3%        |
-| **Quận 6**     | 19        | 2,2%        |
-| **Quận 1**     | 5         | 0,5%        |
-| **Quận 3**     | 7         | 1,1%        |
-| **Quận 4**     | 4         | 0,3%        |
-| **Quận 5**     | 3         | 0,4%        |
-| **Quận 10**    | 15        | 1,8%        |
-| **Bình Thạnh** | 10        | 1,1%        |
-| **Phú Nhuận**  | 6         | 0,8%        |
-| **Gò Vấp**     | 13        | 1,5%        |
-| **Cần Giờ**    | 4         | 0,5%        |
+| **Tân Bình**   | 26        | 2,7%        |
+| **Quận 7**     | 25        | 2,6%        |
+| **Nhà Bè**     | 22        | 2,3%        |
+| **Quận 6**     | 21        | 2,2%        |
+| **Quận 1**     | 7         | 0,7%        |
+| **Quận 3**     | 8         | 0,8%        |
+| **Quận 4**     | 7         | 0,7%        |
+| **Quận 5**     | 3         | 0,3%        |
+| **Quận 10**    | 17        | 1,8%        |
+| **Bình Thạnh** | 13        | 1,3%        |
+| **Phú Nhuận**  | 8         | 0,8%        |
+| **Gò Vấp**     | 16        | 1,7%        |
+| **Cần Giờ**    | 5         | 0,5%        |
 
 Những Quận/Huyện này có số ca mắc **không liên tục**, tức là không thỏa điều kiện theo phương pháp của Cori: **không đủ 12 ca bệnh** trong thời gian 14 ngày để ước tính ***R~t~***. Do đó, báo cáo chỉ vẽ biểu đồ số ca bệnh theo ngày đối với các Quận/Huyện trên.
 
@@ -32,28 +32,46 @@ library(knitr)
 library(lubridate)
 library(slider)
 
-df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated.xlsx", sheet = "data")
+df1 <- read_xlsx("C:/Users/Admin/Desktop/measles/data/data_updated_v3.xlsx", sheet = "data")
 df1 <- as.data.frame(df1)
 
 df1 <- df1 %>% clean_names()
 
 df <- df1 %>% rename(dates = ngay_khoi_phat,
-                    ngaysinh = ngay_sinh,
-                    ngaynv = ngay_nhap_vien_kham,
-                    tiemchung = tinh_trang_tiem_chung,
-                    qh = qhth,
-                    gioi = gioi_tinh)
-
-df$qh <- as.factor(df$qh)
-
-# Lấy ngày nhập viện thay cho ngày khởi phát của các ca missing
-df$dates[is.na(df$dates)] <- df$ngaynv[is.na(df$dates)]
+                     ngaysinh = ngay_sinh,
+                     ngaynv = ngay_nhap_vien_kham,
+                     ngaybc = thoi_gian_bao_cao,
+                     tiemchung = tinh_trang_tiem_chung,
+                     qh = qhth,
+                     gioi = gioi_tinh)
 
 df$cd <- ifelse(df$phan_loai_chan_doan == "Loại trừ sởi", NA, df$phan_loai_chan_doan)
-df <- df[,c("dates", "ngaysinh", "tiemchung", "cd", "qh")]
 
-# Loại những ca Sởi loại trừ
-df <- na.omit(df)
+df <- df[,c("dates", "ngaynv", "ngaybc", "cd", "qh", "ngaysinh")]
+
+df_kpbc <- df[!is.na(df$cd), c("dates", "ngaynv", "ngaybc", "ngaysinh", "qh")]
+
+df_kpbc$delay <- time_length(interval(df_kpbc$dates,
+                                      df_kpbc$ngaybc), "day")
+
+df_kpbc_nor <- filter(df_kpbc, delay >= 0 & delay <= 9)
+mean(df_kpbc_nor$delay)
+
+df_kpbc_abnor1 <- filter(df_kpbc, delay < 0)
+df_kpbc_abnor2 <- filter(df_kpbc, delay > 9)
+df_kpbc_missing <- filter(df_kpbc, is.na(dates))
+
+df_kpbc_abnor1 <- df_kpbc_abnor1 %>%
+  mutate(dates = ngaybc - days(3))
+
+df_kpbc_abnor2 <- df_kpbc_abnor2 %>%
+  mutate(dates = ngaybc - days(3))
+
+df_kpbc_missing <- df_kpbc_missing %>%
+  mutate(dates = ngaybc - days(3))
+
+df <- bind_rows(df_kpbc_nor, df_kpbc_abnor1,
+                df_kpbc_abnor2, df_kpbc_missing)
 ```
 
 ## Tân Bình

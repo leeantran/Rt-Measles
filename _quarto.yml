@@ -27,7 +27,7 @@ csl: apa.csl
 format:
   html:
     echo: false
-    embed-resources: true
+    embed-resources: true 
     theme: [cosmo, custom.scss]
     code-overflow: wrap
     fig-format: svg

@@ -1,21 +1,2214 @@
----
-title: "Giới thiệu"
-editor: visual
----
+# Đánh giá R~t~ năm 2024
 
-# Hệ số lây nhiễm - Reproduction number
+## Bản đồ
 
-**R - Hệ số lây nhiễm (Reproduction number)**
+```{r}
+#| message: false
+#| warning: false
+#| label: fig-map
+#| fig-cap: "Bản đồ xu hướng lây nhiễm"
+#| fig-height: 10
+#| fig-width: 15
+#| out-width: "100%"
+library(readxl)
+library(EpiEstim)
+library(ggplot2)
+library(dplyr)
+library(janitor)
+library(tidyr)
+library(knitr)
+library(lubridate)
+library(slider)
+library(zoo)
+library(data.table)
+library(sf)
+library(plotly)
 
--   ***Hệ số lây nhiễm*** ***R*** là số ca **thứ phát trung bình** do **một cá thể nhiễm bệnh** có thể lây truyền cho người khác **trong suốt thời kì lây nhiễm** [@cori2013d].
+df_combined <- readRDS("df_combined.rds")
 
-**R~0~ - Hệ số lây nhiễm cơ bản (Basic reproduction number)**
+vn_qh <- st_read(dsn = file.path("data", "gadm41_VNM.gpkg"), layer = "ADM_ADM_2")
 
--   ***Hệ số lây nhiễm cơ bản,R~0~***, là số ca thứ phát trung bình do một cá thể nhiễm bệnh có thể lây truyền cho người khác trong suốt thời kì lây nhiễm, trong một quần thể hoàn toàn cảm nhiễm. [@vegvari2022c]
+vn_qh_filter <- filter(vn_qh, NAME_1 == "Hồ Chí Minh")
 
--   Nếu ***R~0~*** **\> 1**, tác nhân gây bệnh có thể phát triển thành dịch. Nếu ***R~0~*** **\< 1**, tác nhân có mức độ lây nhiễm thấp, khó có thể lây nhiễm rộng trong quần thể để gây dịch.
+vn_qh_filter <- vn_qh_filter %>%
+  mutate(NAME_2 = case_when(
+    NAME_2 %in% c("Thủ Đức", "Quận 9", "Quận 2") ~ "TP. Thủ Đức",
+    TRUE ~ NAME_2
+  )) %>%
+  group_by(NAME_2) %>%
+  summarise(geom = st_union(geom))
 
-**R~t~ - Hệ số lây nhiễm hiệu quả tại thời điểm (Effective reproduction number at time)**
+vn_qh_filter <- vn_qh_filter %>%
+  left_join(df_combined, by = c("NAME_2" = "qh"))
+
+vn_qh_filter <- vn_qh_filter %>%
+  mutate(
+    label = case_when(
+      is.na(pct) ~ "Không tính được",
+      pct > 0.9 ~ "Đang tăng",
+      pct > 0.75 ~ "Có thể tăng",
+      pct > 0.25 ~ "Ổn định",
+      pct > 0.1 ~ "Có thể giảm",
+      TRUE ~ "Đang giảm"
+    ),
+    color = case_when(
+      label == "Đang tăng" ~ "#7f3f98",
+      label == "Có thể tăng" ~ "#ed1d24",
+      label == "Ổn định" ~ "#f26522",
+      label == "Có thể giảm" ~ "#ffde17",
+      label == "Đang giảm" ~ "#00a14b",
+      TRUE ~ "white"
+    )
+  )
+
+# Tạo nhãn text để hiển thị trong plotly với các giá trị Rt, Q1_Rt và Q3_Rt
+vn_qh_filter <- vn_qh_filter %>%
+  mutate(text = ifelse(is.na(pct), 
+                       paste0(NAME_2, "<br>Rt: Không tính được"),
+                       paste0(
+                         NAME_2, "<br>",
+                         "Rt: ", round(pct, 2), "(", round(q1_rt, 2), " - ",
+                         round(q3_rt, 2), ")"
+                       )
+  ))
+# Đảm bảo thư viện plotly đã được cài đặt
+library(plotly)
+library(sf)
+
+# Tạo biểu đồ plotly thay thế cho ggplot
+p_plotly <- plot_ly(
+  data = vn_qh_filter,
+  split = ~NAME_2,  # Split by district names
+  color = ~color,  # Ensure that the category column is properly used for color mapping
+  type = 'scatter',  # Use scatter type for regions
+  mode = 'none',  # No points, only filled regions
+  hoveron = 'fills',  # Hover over the filled areas
+  text = ~text,  # Text content for hover
+  hoverinfo = 'text',  # Display the custom hover text
+  showlegend = FALSE  # No legend to reduce clutter
+) %>%
+  add_sf(
+    fillcolor = ~color,  # Correctly assign fill colors based on 'category'
+    line = list(color = "black", width = 1)  # Add black borders around each region
+  ) %>%
+  layout(
+    geo = list(
+      showland = TRUE,
+      landcolor = "lightgray",  
+      bgcolor = "white",
+      projection = list(type = "mercator"),  # 2D map with Mercator projection
+      visible = TRUE
+    ),
+    legend = list(
+      title = list(text = "Xu hướng dịch"),  # Tiêu đề cho chú giải
+      orientation = "v",  # Chú giải theo chiều dọc
+      x = 1.1,  # Vị trí chú giải sang phải
+      y = 1,  # Vị trí chú giải từ trên xuống dưới
+      bgcolor = "rgba(255,255,255,0.8)",  # Nền chú giải màu trắng trong suốt
+      bordercolor = "black",  # Viền chú giải màu đen
+      borderwidth = 1  # Độ dày viền chú giải
+    ),
+    hoverlabel = list(bgcolor = "white", font = list(size = 12)),  # Customize hover label
+    margin = list(l = 50, r = 50, t = 50, b = 50),
+      annotations = list(
+      list(
+        x = 1.1,  # Position to the right of the map
+        y = 1,
+        text = "<b>Xu hướng lây nhiễm:</b><br>
+        <span style='color:#7f3f98;'>● Số ca đang tăng</span><br>
+        <span style='color:#ed1d24;'>● Số ca có thể tăng</span><br>
+        <span style='color:#f26522;'>● Số ca ổn định</span><br>
+        <span style='color:#ffde17;'>● Số ca có thể giảm</span><br>
+        <span style='color:#00a14b;'>● Số ca nhiễm giảm</span><br>
+        <span style='color:gray;'>● Không ước tính được Rt</span>",
+        showarrow = FALSE,
+        xref = 'paper',
+        yref = 'paper',
+        align = 'left'
+      )
+    )
+  )
+
+# Show the plot
+p_plotly
+```
+
+**Nhận định chung:**
+
+**Đến ngày 07-08/10** xu hướng lây nhiễm của Sởi tại các số quận/huyện như sau:
+
+-   Huyện Bình Chánh: số ca nhiễm đang tăng Rt= 1.24 ( 90,1% KTC Rt \<1).
+
+-   TP. Thủ Đức: số ca nhiễm đang tăng Rt= 1.58 ( 99% KTC Rt \<1).
+
+-   Quận 8: số ca nhiễm đang tăng Rt = 1,74 ( 92% KTC Rt \> 1).
+
+-   Huyện Củ Chi: số ca nhiễm đang tăng Rt = 2,37 ( 99% KTC Rt \> 1).
+
+-   Quận Bình Tân: số ca nhiễm có thể tăng Rt = 1,23 ( 88% KTC Rt \> 1).
+
+-   Quận 12: số ca nhiễm ổn định Rt = 1,11 ( 56% KTC Rt \> 1).
+
+-   Quận Tân Phú: số ca nhiễm ổn định Rt = 0,90 ( 34% KTC Rt \> 1).
+
+-   Huyện Hóc Môn: số ca nhiễm có thể giảm Rt = 0,79 (21% KTC Rt \>1).
+
+-   Các Quận/Huyện còn lại không ước tính được hệ số lây Rt (do không đủ dữ liệu).
+
+**Trong tuần từ 02/10 – 08/10,** dựa theo giá trị và khoảng tin cậy của R~t,~ xu hướng lây nhiễm của Thành phố và Quận/Huyện như sau:
+
+-   Thành phố: R~t~ vẫn lớn hơn 1 với trên 90% khoảng tin cậy của R~t~ \> 1, do đó số ca nhiễm **đang tăng**.
+
+-   Quận/Huyện: có 4 quận/huyện vẫn có R~t~ lớn hơn 1 (với trên 90% khoảng tin cậy của R~t~ \> 1 **(màu tím)** bao gồm: Bình Chánh, TP. Thủ Đức, Quận 8, Củ Chi. Quận Bình Tân đang ở giai đoạn số ca nhiễm **có thể tăng,** Quận 12 và Tân Phú thì số ca nhiễm **ổn định** và Hóc Môn có số ca nhiễm **có thể giảm.**
+
+**So với 1 tuần trước:**
+
+-    Quận 8 tăng mức độ báo động số ca nhiễm theo bảng phân loại của USCDC **(từ màu cam thành màu tím)**.
+
+-   Quận Tân Phú tăng báo động về số ca nhiễm **(từ màu vàng thành màu cam)**.
+
+-   Quận Bình Tân giảm báo động về có số ca nhiễm **(từ màu tím thành màu đỏ, tuy nhiên không ổn định)**.
+
+-   Bình Chánh, Củ Chi, TP. Thủ Đức và Quận 12 có mức độ số ca nhiễm duy trì không đổi (**vẫn giữ nguyên mức độ số ca nhiễm so với tuần trước).**
+
+-   Hóc Môn giảm báo động về số ca nhiễm **(từ màu cam thành màu vàng).**
+
+**Phân bố nhóm tuổi theo ngày khởi phát:**
+
+-   Nhóm \< 1 tuổi và 1 – 5 tuổi xuất hiện đầu tiên (khoảng tuần 21), trong đó nhóm \<1 tuổi có số ca tích lũy cao nhất cho thấy đây là nhóm bị ảnh hưởng nặng nhất, nhóm 1-5 tuổi cũng xuất hiện sớm có số ca tích lũy cao đứng thứ hai.
+
+-   Nhóm 6 – 10 tuổi bắt đầu xuất hiện từ tuần 22 và có số ca tích lũy tăng theo thời gian. Các nhóm tuổi lớn hơn xuất hiện trễ hơn nhưng số ca tích lũy tăng rất nhanh.
+
+## Thành phố
+
+```{r,  echo = F, warning=FALSE}
+## Load data
+df <- readRDS("df_clean1310.rds")
+df <- filter(df, dates <= "2024-10-09")
+```
+
+```{r,  echo = F, warning=FALSE}
+df_convert <- df %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r,  echo = F, warning=FALSE}
+process_data <- function(mod_data) {
+  df_rt <- mod_data$R %>%
+    mutate(
+      dates = mod_data$dates[t_end],
+      q1_rt = `Quantile.0.025(R)`,
+      q3_rt = `Quantile.0.975(R)`,
+      rt = `Mean(R)`,
+      b_posterior = `Std(R)`^2 / `Mean(R)`,
+      a_posterior = `Mean(R)` / b_posterior,
+      pct = pgamma(1, shape = a_posterior, scale = b_posterior, lower.tail = FALSE),
+      pl = case_when(
+        pct > 0.9 ~ "tim",
+        pct > 0.75 & pct <= 0.9 ~ "do",
+        pct > 0.25 & pct <= 0.75 ~ "cam",
+        pct > 0.1 & pct <= 0.25 ~ "vang",
+        pct < 0.1 ~ "xanh"
+      )
+    )
+  
+  return(df_rt)
+}
+```
+
+```{r,  echo = F, warning=FALSE}
+df_filter <- filter(df_complete, dates >= "2024-05-30")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo = F, warning=FALSE, message=FALSE}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-21") , 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-05") , 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 10,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 10,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  return(p)
+}
+```
+
+```{r,echo = F, warning=FALSE, message = FALSE}
+#| label: fig-tp
+#| fig-cap: "Diễn tiến Rt của Thành phố"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+
+library(patchwork)
+df_filter_plot <- filter(df_filter, dates >= "2024-07-12")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 1))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+
+df_rt_plot <- filter(df_rt, dates >= "2024-07-12")
+
+p_rt <- plot_rt(df_rt_plot)
+
+p_hist
+
+p_rt
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r, echo = F, warning = F, message = F}
+#| echo: false
+#| message: false
+#| warning: false
+df_rt <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## Phân bố nhóm tuổi
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 10
+#| fig-width: 15
+#| out-width: "100%"
+#| label: fig-nt
+#| fig-cap: "Phân bố nhóm tuổi theo ngày khởi phát"
+library(patchwork)
+library(ggsci)
+df_complete$week_onset <- floor_date(df_complete$dates, "week", week_start = 1) 
+
+df_complete$week <- ifelse(df_complete$week_onset >= "2024-03-04", 10 + as.integer(difftime(df_complete$week_onset, "2024-03-04", units = "weeks")))
+
+df_new <- df_complete %>%
+    group_by(week) %>%
+    summarise(I = sum(I))
+
+p_hist <- ggplot(df_new, aes(x = week)) +
+    geom_histogram(aes(y = I), fill = "#87A2FF", stat = "identity", binwidth = 1, width = 1,
+                   color = "white") +
+    labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12)) + 
+    scale_x_continuous(breaks = seq(20, 41, by = 1), limits = c(20, 41))
+
+df$ngaysinh <- as.Date(df$ngaysinh)
+df$age <- time_length(interval(df$ngaysinh, df$dates), "month")
+df <- df %>% mutate(agegr= case_when(
+    age < 12 ~ "< 1 year",
+    12 <= age & age < 72 ~ "1 - 5 years",
+    72 <= age & age < 132 ~ "6 - 10 years",
+    132 <= age & age < 216 ~ "11 - 17 years",
+    age >= 216  ~ ">= 18 years"
+  ))
+df$agegr <- factor(df$agegr, levels = c(">= 18 years", "11 - 17 years", "6 - 10 years" ,"1 - 5 years" ,"< 1 year"))
+df$dates <- as.Date(df$dates)
+
+df$week_onset <- floor_date(df$dates, "week", week_start = 1)
+
+df$week <- ifelse(df$week_onset >= "2024-03-04", 10 + as.integer(difftime(df$week_onset, "2024-03-04", units = "weeks")))
+
+df_plot <- df |> 
+    group_by(week) |> 
+    count(agegr) |> 
+    as.data.frame() |> 
+    complete(week, agegr, fill = list(n = 0)) |> 
+    arrange(week) |>
+    group_by(agegr) |> 
+    mutate(cumn = cumsum(n))
+
+p_agegr <- ggplot(df_plot, aes(x = week, y = log(cumn), color = agegr)) +
+    #geom_line(size = 1, alpha = 0.6) +  
+    geom_smooth(se = FALSE, span = 0.5, method = "loess", size = 1) + 
+    scale_colour_lancet() +
+    scale_y_continuous(expand = c(0, 0)) +
+    scale_x_continuous(breaks = seq(20, 41, by = 1), limits = c(20, 41)) +
+    labs(x = "Week onset", y = "Log cumulative case count", color = "Age group") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12))
+
+
+p_hist / p_agegr
+```
+
+## Quận/Huyện
+
+### Bình Chánh
+
+```{r, echo = F, warning = F, message = F}
+
+df_qh <- filter(df, qh == "Bình Chánh")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r, echo = F, warning = F, message = F}
+df_filter <- filter(df_complete, dates >= "2024-06-11")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo = F, warning = F, message = F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-21") + 1 , 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 11.5, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-05") + 1, 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 11.5, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 12,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 12,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  
+  
+  return(p)
+}
+```
+
+```{r, echo = F, warning = F, message = F}
+#| label: fig-bc
+#| fig-cap: "Diễn tiến Rt của Bình Chánh"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-07-01")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 0.5))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-07-01")
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_bc <- df_rt %>%
+    arrange(desc(dates))
+  
+  kable(df_rt_bc[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+### Bình Tân
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Bình Tân")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r, echo = F, warning = F, message = F}
+library(patchwork)
+
+df_filter <- filter(df_complete, dates >= "2024-06-13")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo = F, warning = F, message = F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 3.5, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 3.5, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-21") + 1 , 
+                              y = 3, 
+                              showarrow = FALSE, 
+                              font = list(size = 11.5, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-05") + 1 , 
+                              y = 3, 
+                              showarrow = FALSE, 
+                              font = list(size = 11.5, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 11,
+        y0 = 2.5,
+        y1 = 3.5,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 11,
+        y0 = 2.5,
+        y1 = 3.5,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  
+  
+  return(p)
+}
+```
+
+```{r, echo = F, warning = F, message = F}
+#| label: fig-bta
+#| fig-cap: "Diễn tiến Rt của Bình Tân"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+library(patchwork)
+
+df_filter_plot <- filter(df_filter, dates >= "2024-07-06")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 0.5))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+df_rt_plot <- filter(df_rt, dates >= "2024-07-06")
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_bta <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt_bta[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+### TP. Thủ Đức
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "TP. Thủ Đức")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 10
+
+df_filter <- filter(df_complete, dates >= "2024-08-18")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo = F, warning = F, message = F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-21") , 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-05") , 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 10,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 10,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  
+  
+  return(p)
+}
+```
+
+```{r, echo = F, warning = F, message = F}
+#| label: fig-td
+#| fig-cap: "Diễn tiến Rt của TP. Thủ Đức"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-09-07")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 0.5))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-07")
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_td <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt_td[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+### Hóc Môn
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Hóc Môn")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 10
+
+df_filter <- filter(df_complete, dates >= "2024-08-11")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo =F, warning = F, message =F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 6, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 6, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-20") , 
+                              y = 5.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-04") , 
+                              y = 5.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 8,
+        y0 = 5,
+        y1 = 6,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 8,
+        y0 = 5,
+        y1 = 6,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  
+  
+  return(p)
+}
+```
+
+```{r, echo = F, warning = F, message = F}
+#| label: fig-hm
+#| fig-cap: "Diễn tiến Rt của Hóc Môn"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-08-30")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 0.5))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-08-30")
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_hm <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt_hm[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+### Quận 8
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Quận 8")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 10
+
+df_filter <- filter(df_complete, dates >= "2024-08-15")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo = F, warning = F, message = F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 5, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 5, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-20") , 
+                              y = 4.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-04") , 
+                              y = 4.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 8,
+        y0 = 4,
+        y1 = 5,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 8,
+        y0 = 4,
+        y1 = 5,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  
+  
+  return(p)
+}
+```
+
+```{r, echo =F, warning = F, message = F}
+#| label: fig-q8
+#| fig-cap: "Diễn tiến Rt của Quận 8"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-09-02")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 0.5))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-02")
+
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_q8 <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt_q8[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+### Củ Chi
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Củ Chi")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 10
+
+df_filter <- filter(df_complete, dates >= "2024-08-13")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo = F, warning = F, message = F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 5, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 5, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-19") , 
+                              y = 4.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-03") , 
+                              y = 4.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 6,
+        y0 = 4,
+        y1 = 5,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 6,
+        y0 = 4,
+        y1 = 5,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  
+  
+  return(p)
+}
+```
+
+```{r, echo = F, warning = F, message = F}
+#| label: fig-cc
+#| fig-cap: "Diễn tiến Rt của Củ Chi"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-09-02")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 0.5))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-02")
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_cc <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt_cc[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+### Quận 12
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Quận 12")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r, echo = F, warning = F, message = F}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 10
+
+df_filter <- filter(df_complete, dates >= "2024-08-06")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo = F, warning = F, message = F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") %>%
+            add_segments(x = as.Date("2024-08-31"), xend = as.Date("2024-08-31"), 
+                          y = 4, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE, hoverinfo ="none") 
+
+
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-21") , 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black")) %>%
+            add_annotations(text = "Vaccination\nfor < 5y",
+                              x = as.Date("2024-09-05") , 
+                              y = 3.5, 
+                              showarrow = FALSE, 
+                              font = list(size = 12, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 10,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      ),
+      list(
+        type = "rect",
+        x0 = as.Date("2024-08-31"),
+        x1 = as.Date("2024-08-31") + 10,
+        y0 = 3,
+        y1 = 4,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")))
+      )
+  
+  
+  return(p)
+}
+```
+
+```{r, echo = F, warning = F, message = F}
+#| label: fig-q12
+#| fig-cap: "Diễn tiến Rt của Quận 12"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+
+library(patchwork)
+
+# Biểu đồ đường cong dịch
+df_filter_plot <- filter(df_filter, dates >= "2024-08-25")
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 0.5))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+                 ),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-08-25")
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_q12 <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt_q12[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+### Tân Phú
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+df_qh <- filter(df, qh == "Tân Phú")
+
+df_convert <- df_qh %>% group_by(dates) %>% 
+  summarise(I = n())
+
+df_complete <- df_convert %>%
+    complete(dates = seq(min(dates), max(dates), by = "day")) %>%
+    replace_na(list(I = 0))
+
+df_complete$dates <- as.Date(df_complete$dates)
+
+df_complete <- df_complete %>%
+  mutate(mva_14d = slide_dbl(
+    I, .f = ~mean(.x, na.rm = T),
+    .before = 13
+  )
+)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-heigt: 10
+
+df_filter <- filter(df_complete, dates >= "2024-08-24")
+
+t_start <- seq(2, nrow(df_filter)-13)
+t_end <- t_start + 13
+
+mod <- estimate_R(
+  incid = df_filter, 
+  method = "parametric_si", 
+  config = make_config(
+    list(
+      mean_si = 14.5, 
+      std_si = 3.25,
+      t_start = t_start,
+      t_end = t_end
+    )
+  )
+)
+
+df_rt <- process_data(mod)
+
+df_rt <- df_rt %>% 
+     arrange(dates) %>% 
+     mutate(id = consecutive_id(pl))
+```
+
+```{r, echo=F, warning=F, message=F}
+library(plotly)
+plot_rt <- function(data) {
+  df_plot <- data
+  df_plot <- head(do.call(rbind, by(df_plot, df_plot$id, rbind, NA)), -1)
+  df_plot[, c("pl", "id")] <- lapply(df_plot[, c("pl", "id")], na.locf)
+  df_plot[] <- lapply(df_plot, na.locf, fromLast = TRUE)
+  
+  col <- c("#f26522", "#ed1d24", "#7f3f98", "#ffde17", "#00a14b")
+  df_plot$color <- col[as.factor(df_plot$pl)]
+  
+
+  if (any(is.na(df_plot$dates)) || any(is.na(df_plot$q1_rt)) || any(is.na(df_plot$q3_rt))) {
+    stop("Dữ liệu không hợp lệ: Có giá trị NA trong các cột cần thiết.")
+  }
+  
+
+  p <- plot_ly()
+  
+
+df_plot <- df_plot %>%
+  group_by(id) %>%
+  mutate(q1_rt_adjusted = q1_rt + (row_number() - 1) * 0.0001,  
+         q3_rt_adjusted = q3_rt + (row_number() - 1) * 0.0001)
+
+
+  p <- p %>% add_ribbons(data = df_plot, ymin = ~q1_rt_adjusted, ymax = ~q3_rt_adjusted, 
+                         x = ~dates, fillcolor = ~color,
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text", line = list(color = 'transparent'),
+                         opacity = 0.5,
+                         name = 'Q1 RT',
+                         showlegend = FALSE) %>%
+             add_lines(x = ~dates, y = rep(1, nrow(df_plot)),
+                       line = list(dash = 'dash', color = 'black'),
+                       hoverinfo = "none")
+
+
+  unique_ids <- unique(df_plot$id)
+  for (i in unique_ids) {
+    group_data <- df_plot[df_plot$id == i, ]
+    p <- p %>% add_trace(data = group_data, x = ~dates, y = ~rt, mode = 'lines',
+                         line = list(color = group_data$color[1]), 
+                         text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Rt:    </b> ", round(rt, 2),
+                                        "<br>    (", round(q1_rt, 2),
+                                        " - ", round(q3_rt, 2), ")"),
+                         hoverinfo = "text",
+                         showlegend = FALSE)
+  }
+  
+   # Thêm segment
+  p <- p %>% add_segments(x = as.Date("2024-09-16"), xend = as.Date("2024-09-16"), 
+                          y = 6, yend = 0, line = list(color = "black", width = 2), showlegend = FALSE) 
+
+
+  # Thêm text
+  p <- p %>% add_annotations(text = "Vaccination\nfor < 10y",
+                              x = as.Date("2024-09-18") , 
+                              y = 5, 
+                              showarrow = FALSE, 
+                              font = list(size = 13, color = "black"))
+  
+   p <- p %>% layout(
+     title = "",
+     xaxis = list(title = "Date", showgrid = TRUE, zeroline = FALSE),
+     yaxis = list(title = "Estimate Rt", showgrid = TRUE, zeroline = FALSE),
+     plot_bgcolor = 'white',
+     paper_bgcolor = 'white',
+     hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)'),
+     shapes = list(
+      list(
+        type = "rect",
+        x0 = as.Date("2024-09-16"),
+        x1 = as.Date("2024-09-16") + 4,
+        y0 = 4,
+        y1 = 6,
+        fillcolor = "#42CAFD",
+        line = list(color = "transparent")
+      )))
+  
+  
+  return(p)
+}
+
+```
+
+```{r, echo=F, warning=F, message=F}
+#| label: fig-tphu
+#| fig-cap: "Diễn tiến Rt của Tân Phú"
+#| fig-width: 15
+#| fig-height: 10
+#| out-width: "100%"
+
+df_filter_plot <- filter(df_filter, dates >= "2024-09-10")
+
+p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
+  add_bars(y = ~I, 
+           name = "Cases",
+           text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+           hoverinfo = "text",
+           textposition = 'none',
+           marker = list(color = "#87A2FF", line = list(color = "black", width = 1))
+           ) %>%
+  add_trace(y = ~mva_14d, name = "Moving Average", 
+            mode = 'lines', 
+            line = list(color = "#E78F81", width = 2),
+            text = ~paste0("<b>", format(dates, "%b %d"), "</b>",
+                                        "<br><b>Cases: </b> ", I,
+                                        "<br><b>Moving Average: </b> ", round(mva_14d,2)
+                                       ),
+            hoverinfo = "text") %>%
+  layout(
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "D1"),
+    yaxis = list(title = "Incidence"),
+    legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
+    plot_bgcolor = 'white',
+    hoverlabel = list(bgcolor = 'rgba(255,255,255,0.75)')
+  )
+
+
+# Biểu đồ Rt
+df_rt_plot <- filter(df_rt, dates >= "2024-09-10")
+p_rt <- plot_rt(df_rt_plot)
+
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
+```
+
+::: {.callout-caution collapse="true"}
+## Bảng kết quả của Rt
+
+```{r}
+df_rt_tp <- df_rt %>%
+  arrange(desc(dates))
+
+kable(df_rt_tp[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+```
+:::
+
+## R~t~ - Hệ số lây nhiễm hiệu quả tại thời điểm (Effective reproduction number at time)
 
 -   ***Hệ số lây nhiễm hiệu quả tại thời điểm, R~t~*** là số ca thứ phát trung bình do một cá thể nhiễm bệnh có thể lây truyền cho người khác trong suốt thời kì lây nhiễm, tại **một thời điểm nhất định**, khi quần thể **không hoàn toàn cảm nhiễm**. [@practicaa]\
 
@@ -23,41 +2216,11 @@ editor: visual
 
 -   Ước lượng ***R~t~*** rất nhạy với phân phối thời gian thế hệ (generation interval).
 
--   Khi ước tính ***R~t,~*** cần phải xác định **khoảng tin cậy (credible interval)** để bao hàm các giá trị khả thi của ***R~t~***.
+-   Ước tính hệ số lây nhiễm ***R~t~*** có thể không chính xác, do số ca bệnh được báo cáo có thể biến động bởi nhiều yếu tố như mức độ nghiêm trọng của bệnh, tần suất thực hiện xét nghiệm hoặc sự thay đổi trong quy trình báo cáo.
 
--   **R~t~ có thể ước lượng theo 2 phương pháp:** **R^*i*^~*t*~** (instantaneous reproduction number) và ***R^c^~t~*** (case reproduction number). Xem tài liệu sau để hiểu rõ hơn về 2 chỉ số này: <https://drthinhong.com/idm4b/rt.html>. Hiểu một cách đơn giản là ***R^i^~t~*** được ước tính theo thời gian thực và sử dụng dữ liệu trước thời điểm ***t***, còn ***R^c^~t~*** ước tính hồi cứu để đánh giá dịch đã xảy ra và mức độ hiệu quả của các chính sách, biện pháp can thiệp đã thực hiện.
+## Phương pháp ước tính R~t~
 
-::: callout-tip
-## Ghi chú
-
-Đối với các phân tích theo thời gian thực nhằm đánh giá tác động của những can thiệp y tế công cộng, các khuyến cáo đề nghị sử dụng phương pháp *R^i^~t~* (instantaneous reproduction number) của Cori cùng cộng sự là phù hợp nhất [@gostic2020].
-:::
-
-![](images/images_large_10.1177_09622802211037079-fig1.jpeg){width="3900"}
-
--   CDC Mỹ hiện đang sử dụng R~t~ để đánh giá mức độ lây nhiễm cho các tác nhân như COVID-19 [@cdc2024], [đậu mùa khỉ](https://archive.cdc.gov/#/details?url=https://www.cdc.gov/poxvirus/mpox/cases-data/technical-report/technical-report-4-supplement.html)... Khuyến cáo của CDC sử dụng tỉ lệ phân phối khoảng tin cậy (KTC) của R~t~ để phân loại tình hình dịch bệnh như sau:
-
-::: callout-note
-## Phân độ R~t~ [@cdc2024]
-
-![](table.drawio.svg){width="526"}
-:::
-
-# Thời gian thế hệ (Generation and Serial interval)
-
--   ***Khoảng thời gian thế hệ (Generation interval)***: là khoảng thời gian từ khi **ca bệnh đầu tiên bị nhiễm** đến khi lây truyền **cho các ca bệnh khác** do ca đó gây ra. [@cori2013b].
-
-![](images/clipboard-109036807.png){width="601"}
-
--   ***Khoảng thời gian nối tiếp (Serial interval)***: là khoảng thời gian từ khi một **ca bệnh khởi phát triệu chứng** đến khi các **ca bệnh do ca đó lây khởi phát triệu chứng** [@gostic2020b].
-
-![](images/gen-ser-int.png){width="600"}
-
-*Hình minh họa từ tác giả* [@sender2022b].
-
-# Phương pháp ước tính R~t~
-
-## **Công thức:**
+### **Công thức:**
 
 **Uớc tính R~t~ theo phương pháp Cori:** [@cori2013c]
 
@@ -75,7 +2238,7 @@ $$
 
 -   **I~t-s~w~s~:** thể hiện sự điều chỉnh số ca nhiễm **s** ngày trước bằng mức độ lây nhiễm tại thời điểm hiện tại **t** (là **s** ngày sau khi họ bị nhiễm bệnh).
 
-## Tiêu chuẩn để ước tính R~t~
+### Tiêu chuẩn để ước tính R~t~
 
 **Tiêu chuẩn theo phương pháp Cori:** [@cori2013c]
 
@@ -84,3 +2247,25 @@ $$
 -   Tối thiểu sau trung bình của Serival Interval.
 
 -   Tối thiểu 12 ca bệnh (ca bệnh ban đầu + 11) được quan sát kể từ khi bắt đầu dịch (trong một Sliding Window): để có được khoảng tin cậy trên là 0,3, sliding window phải bao gồm ít nhất 11 ca mắc mới.
+
+## Phương pháp đánh giá R~t~
+
+-   CDC Mỹ hiện đang sử dụng R~t~ để đánh giá mức độ lây nhiễm cho các tác nhân như COVID-19 [@cdc2024], [đậu mùa khỉ](https://archive.cdc.gov/#/details?url=https://www.cdc.gov/poxvirus/mpox/cases-data/technical-report/technical-report-4-supplement.html)... Khuyến cáo của CDC sử dụng tỉ lệ phân phối khoảng tin cậy (KTC) của R~t~ để phân loại tình hình dịch bệnh như sau:
+
+::: callout-note
+## Phân độ R~t~ [@cdc2024]
+
+![](table.drawio.svg){width="526"}
+:::
+
+## Thời gian thế hệ
+
+-   ***Khoảng thời gian thế hệ (Generation interval)***: là khoảng thời gian từ khi **ca bệnh đầu tiên bị nhiễm** đến khi lây truyền **cho các ca bệnh khác** do ca đó gây ra. [@cori2013b].
+
+![](images/clipboard-109036807.png){width="601"}
+
+-   ***Khoảng thời gian nối tiếp (Serial interval)***: là khoảng thời gian từ khi một **ca bệnh khởi phát triệu chứng** đến khi các **ca bệnh do ca đó lây khởi phát triệu chứng** [@gostic2020b].
+
+![](images/gen-ser-int.png){width="600"}
+
+*Hình minh họa từ tác giả* [@sender2022b].

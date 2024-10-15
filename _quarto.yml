@@ -9,15 +9,11 @@ execute:
 book:
   title: "Đánh giá hệ số lây nhiễm theo thời gian thực của Sởi"
   author: HCDC - OUCRU
-  date: "09/29/2024"
+  date: "10/15/2024"
   sidebar:
     collapse-level: 1
   chapters:
     - index.qmd
-    - rt_2024.qmd
-    - qhncc.qmd
-    - qhnct.qmd
-    - nx.qmd
     - rt_2019.qmd
     - references.qmd
 
@@ -33,7 +29,7 @@ format:
     fig-format: svg
     df-print: paged
     toc: true
-    toc-title: "Mục lục"
+    toc-title: "Nội dung"
     toc-depth: 5
     toc-expand: 3
     message: false

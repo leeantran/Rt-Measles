@@ -361,7 +361,7 @@ df_plot <- df_plot %>%
 #| label: fig-tp
 #| fig-cap: "Diễn tiến Rt của Thành phố"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 
 library(patchwork)
@@ -414,7 +414,7 @@ p_rt
 df_rt <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
@@ -912,7 +912,7 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_bta <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt_bta[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt_bta[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
@@ -1129,7 +1129,7 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_td <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt_td[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt_td[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
@@ -1347,7 +1347,7 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_hm <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt_hm[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt_hm[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
@@ -1566,7 +1566,7 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_q8 <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt_q8[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt_q8[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
@@ -1784,7 +1784,7 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_cc <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt_cc[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt_cc[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
@@ -2002,7 +2002,7 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_q12 <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt_q12[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt_q12[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
@@ -2204,13 +2204,13 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_tp <- df_rt %>%
   arrange(desc(dates))
 
-kable(df_rt_tp[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+kable(df_rt_tp[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 
-## R~t~ - Hệ số lây nhiễm hiệu quả tại thời điểm (Effective reproduction number at time)
+## R~t~ - Hệ số lây nhiễm hiệu quả tại thời điểm
 
--   ***Hệ số lây nhiễm hiệu quả tại thời điểm, R~t~*** là số ca thứ phát trung bình do một cá thể nhiễm bệnh có thể lây truyền cho người khác trong suốt thời kì lây nhiễm, tại **một thời điểm nhất định**, khi quần thể **không hoàn toàn cảm nhiễm**. [@practicaa]\
+-   ***Hệ số lây nhiễm hiệu quả tại thời điểm (R~t~*** - Effective reproduction number at time) là số ca thứ phát trung bình do một cá thể nhiễm bệnh có thể lây truyền cho người khác trong suốt thời kì lây nhiễm, tại **một thời điểm nhất định**, khi quần thể **không hoàn toàn cảm nhiễm**. [@practicaa]
 
 -   ***R~t~*** thể hiện mức độ lây nhiễm trong cộng đồng theo **thời gian thực** và giúp quan sát tình hình dịch bệnh có chiều hướng tăng, giảm, hoặc ổn định. Đồng thời, có thể dựa vào chỉ số này để đánh giá **hiệu quả** của các biện pháp kiểm soát đã được thực hiện. Nếu ***R~t~ duy trì \> 1*** thì số ca có thể tăng, dịch bệnh có thể bùng phát trở lại; nếu ***R~t~ duy trì \< 1*** thì số ca có thể giảm, dịch bệnh đang được kiểm soát.
 
@@ -2250,12 +2250,12 @@ $$
 
 ## Phương pháp đánh giá R~t~
 
--   CDC Mỹ hiện đang sử dụng R~t~ để đánh giá mức độ lây nhiễm cho các tác nhân như COVID-19 [@cdc2024], [đậu mùa khỉ](https://archive.cdc.gov/#/details?url=https://www.cdc.gov/poxvirus/mpox/cases-data/technical-report/technical-report-4-supplement.html)... Khuyến cáo của CDC sử dụng tỉ lệ phân phối khoảng tin cậy (KTC) của R~t~ để phân loại tình hình dịch bệnh như sau:
+-   CDC Hoa Kỳ hiện đang sử dụng ***R~t~*** để đánh giá mức độ lây nhiễm cho các tác nhân như COVID-19 [@cdc2024], [đậu mùa khỉ](https://archive.cdc.gov/#/details?url=https://www.cdc.gov/poxvirus/mpox/cases-data/technical-report/technical-report-4-supplement.html)... Khuyến cáo của CDC sử dụng tỉ lệ phân phối khoảng tin cậy (KTC) của R~t~ để phân loại tình hình dịch bệnh như sau:
 
 ::: callout-note
 ## Phân độ R~t~ [@cdc2024]
 
-![](table.drawio.svg){width="526"}
+![](table.drawio.svg){fig-align="center" width="549"}
 :::
 
 ## Thời gian thế hệ

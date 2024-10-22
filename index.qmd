@@ -63,11 +63,11 @@ vn_qh_filter <- vn_qh_filter %>%
 
 # Tạo nhãn text để hiển thị trong plotly với các giá trị Rt, Q1_Rt và Q3_Rt
 vn_qh_filter <- vn_qh_filter %>%
-  mutate(text = ifelse(is.na(pct), 
+  mutate(text = ifelse(is.na(pct),
                        paste0(NAME_2, "<br>Rt: Không tính được"),
                        paste0(
                          NAME_2, "<br>",
-                         "Rt: ", round(pct, 2), "(", round(q1_rt, 2), " - ",
+                         "Rt: ", round(rt, 2), " (", round(q1_rt, 2), " - ",
                          round(q3_rt, 2), ")"
                        )
   ))
@@ -94,7 +94,7 @@ p_plotly <- plot_ly(
   layout(
     geo = list(
       showland = TRUE,
-      landcolor = "lightgray",  
+      landcolor = "lightgray",
       bgcolor = "white",
       projection = list(type = "mercator"),  # 2D map with Mercator projection
       visible = TRUE
@@ -135,43 +135,45 @@ p_plotly
 
 **Nhận định chung:**
 
-**Đến ngày 07-08/10** xu hướng lây nhiễm của Sởi tại các số quận/huyện như sau:
+**Đến ngày 17/10** xu hướng lây nhiễm của Sởi tại các số quận/huyện như sau:
 
--   Huyện Bình Chánh: số ca nhiễm đang tăng Rt= 1.24 ( 90,1% KTC Rt \<1).
+-   Huyện Bình Chánh: số ca nhiễm đang giảm R~t~ = 0,65 (0,44 - 0,91).
 
--   TP. Thủ Đức: số ca nhiễm đang tăng Rt= 1.58 ( 99% KTC Rt \<1).
+-   TP. Thủ Đức: số ca nhiễm đang tăng R~t~ = 1,51 (1,15 - 1,93).
 
--   Quận 8: số ca nhiễm đang tăng Rt = 1,74 ( 92% KTC Rt \> 1).
+-   Quận 8: số ca nhiễm đang tăng Rt = 2,74 (1,54 - 4,29).
 
--   Huyện Củ Chi: số ca nhiễm đang tăng Rt = 2,37 ( 99% KTC Rt \> 1).
+-   Huyện Củ Chi: số ca nhiễm đang tăng R~t~ = 1,12 (0,73 - 1,59).
 
--   Quận Bình Tân: số ca nhiễm có thể tăng Rt = 1,23 ( 88% KTC Rt \> 1).
+-   Quận Bình Tân: số ca nhiễm có thể tăng R~t~ = 0,89 (0,61 - 1,22).
 
--   Quận 12: số ca nhiễm ổn định Rt = 1,11 ( 56% KTC Rt \> 1).
+-   Quận 12: số ca nhiễm ổn định R~t~ = 2,07 (1,16 - 3,24).
 
--   Quận Tân Phú: số ca nhiễm ổn định Rt = 0,90 ( 34% KTC Rt \> 1).
+-   Quận Tân Phú: số ca nhiễm ổn định R~t~ = 3,28 (2,05 - 4,78).
 
--   Huyện Hóc Môn: số ca nhiễm có thể giảm Rt = 0,79 (21% KTC Rt \>1).
+-   Huyện Hóc Môn: số ca nhiễm có thể giảm R~t~ = 1,74 (1,05 - 2,60).
 
 -   Các Quận/Huyện còn lại không ước tính được hệ số lây Rt (do không đủ dữ liệu).
 
-**Trong tuần từ 02/10 – 08/10,** dựa theo giá trị và khoảng tin cậy của R~t,~ xu hướng lây nhiễm của Thành phố và Quận/Huyện như sau:
+**Trong tuần từ 11/10 - 17/10,** dựa theo giá trị và khoảng tin cậy của R~t,~ xu hướng lây nhiễm của Thành phố và Quận/Huyện như sau:
 
--   Thành phố: R~t~ vẫn lớn hơn 1 với trên 90% khoảng tin cậy của R~t~ \> 1, do đó số ca nhiễm **đang tăng**.
+-   Thành phố: R~t~ vẫn lớn hơn 1 với khoảng 99% khoảng tin cậy của R~t~ \> 1, do đó số ca nhiễm **đang tăng**.
 
--   Quận/Huyện: có 4 quận/huyện vẫn có R~t~ lớn hơn 1 (với trên 90% khoảng tin cậy của R~t~ \> 1 **(màu tím)** bao gồm: Bình Chánh, TP. Thủ Đức, Quận 8, Củ Chi. Quận Bình Tân đang ở giai đoạn số ca nhiễm **có thể tăng,** Quận 12 và Tân Phú thì số ca nhiễm **ổn định** và Hóc Môn có số ca nhiễm **có thể giảm.**
+-   Quận/Huyện: có 4 quận/huyện vẫn có R~t~ lớn hơn 1 (với trên 90% khoảng tin cậy của R~t~ \> 1 **(màu tím)** bao gồm: Hóc Môn, TP. Thủ Đức, Quận 8, Quận 12 và Tân Phú. Củ Chi có số ca nhiễm **ổn định**, Quận Bình Tân đang ở giai đoạn số ca nhiễm **có thể giảm** và Bình Chánh có số ca nhiễm **đang giảm (với dưới 10% KTC của R~t~ > 1 bắt đầu từ 12/10 đến hiện tại).**
 
 **So với 1 tuần trước:**
 
--    Quận 8 tăng mức độ báo động số ca nhiễm theo bảng phân loại của USCDC **(từ màu cam thành màu tím)**.
+-   Quận 12 và Tân Phú **tăng** báo động về số ca nhiễm **(từ màu cam thành màu tím)**.
 
--   Quận Tân Phú tăng báo động về số ca nhiễm **(từ màu vàng thành màu cam)**.
+-   Quận Bình Tân **giảm** báo động về có số ca nhiễm **(từ màu đỏ thành màu đỏ thành màu vàng)**.
 
--   Quận Bình Tân giảm báo động về có số ca nhiễm **(từ màu tím thành màu đỏ, tuy nhiên không ổn định)**.
+-   Quận 8 và TP. Thủ Đức vẫn giữ nguyên mức độ báo động số ca nhiễm **đang tăng (màu tím)**.
 
--   Bình Chánh, Củ Chi, TP. Thủ Đức và Quận 12 có mức độ số ca nhiễm duy trì không đổi (**vẫn giữ nguyên mức độ số ca nhiễm so với tuần trước).**
+-   Hóc Môn **tăng** báo động về số ca nhiễm **(từ màu vàng thành màu tím).**
 
--   Hóc Môn giảm báo động về số ca nhiễm **(từ màu cam thành màu vàng).**
+-   Củ Chi **giảm** báo động về số ca nhiễm **(từ màu tím thành màu cam)**.
+
+-   Bình Chánh **giảm** báo động về số ca nhiễm **(từ màu tím thành màu xanh)**.
 
 **Phân bố nhóm tuổi theo ngày khởi phát:**
 
@@ -183,8 +185,8 @@ p_plotly
 
 ```{r,  echo = F, warning=FALSE}
 ## Load data
-df <- readRDS("df_clean1310.rds")
-df <- filter(df, dates <= "2024-10-09")
+df <- readRDS("df_clean2010.rds")
+df <- filter(df, dates <= "2024-10-18")
 ```
 
 ```{r,  echo = F, warning=FALSE}
@@ -448,7 +450,7 @@ p_hist <- ggplot(df_new, aes(x = week)) +
           axis.text.y = element_text(size = 10),
           axis.title.x = element_text(size = 12),
           axis.title.y = element_text(size = 12)) + 
-    scale_x_continuous(breaks = seq(20, 41, by = 1), limits = c(20, 41))
+    scale_x_continuous(breaks = seq(20, 42, by = 1), limits = c(20, 42))
 
 df$ngaysinh <- as.Date(df$ngaysinh)
 df$age <- time_length(interval(df$ngaysinh, df$dates), "month")
@@ -480,7 +482,7 @@ p_agegr <- ggplot(df_plot, aes(x = week, y = log(cumn), color = agegr)) +
     geom_smooth(se = FALSE, span = 0.5, method = "loess", size = 1) + 
     scale_colour_lancet() +
     scale_y_continuous(expand = c(0, 0)) +
-    scale_x_continuous(breaks = seq(20, 41, by = 1), limits = c(20, 41)) +
+    scale_x_continuous(breaks = seq(20, 42, by = 1), limits = c(20, 42)) +
     labs(x = "Week onset", y = "Log cumulative case count", color = "Age group") +
     theme_classic() +
     theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
@@ -700,7 +702,7 @@ subplot(p_hist, p_rt, nrows = 2, shareX = T)
 df_rt_bc <- df_rt %>%
     arrange(desc(dates))
   
-  kable(df_rt_bc[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimatr Rt", "Q1", "Q3", "Propability"))
+  kable(df_rt_bc[,c("dates", "rt", "q1_rt", "q3_rt", "pct")], col.names = c("Dates", "Estimate Rt", "Q1", "Q3", "Propability"))
 ```
 :::
 

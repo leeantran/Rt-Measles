@@ -23,6 +23,8 @@ library(zoo)
 library(data.table)
 library(sf)
 library(plotly)
+library(crosstalk)
+library(DT)
 
 df_combined <- readRDS("df_combined.rds")
 
@@ -71,48 +73,49 @@ vn_qh_filter <- vn_qh_filter %>%
                          round(q3_rt, 2), ")"
                        )
   ))
-# Đảm bảo thư viện plotly đã được cài đặt
-library(plotly)
-library(sf)
 
-# Tạo biểu đồ plotly thay thế cho ggplot
+vn_qh_filter <- vn_qh_filter %>%
+  select(NAME_2, dates, label, rt, q1_rt, q3_rt, text, color, geom)
+
+plot <- highlight_key(vn_qh_filter)
+
 p_plotly <- plot_ly(
-  data = vn_qh_filter,
-  split = ~NAME_2,  # Split by district names
-  color = ~color,  # Ensure that the category column is properly used for color mapping
-  type = 'scatter',  # Use scatter type for regions
-  mode = 'none',  # No points, only filled regions
-  hoveron = 'fills',  # Hover over the filled areas
-  text = ~text,  # Text content for hover
-  hoverinfo = 'text',  # Display the custom hover text
-  showlegend = FALSE  # No legend to reduce clutter
+  data = plot,
+  split = ~NAME_2,  
+  color = ~color,
+  type = 'scatter',
+  mode = 'none',
+  hoveron = 'fills',
+  text = ~text,
+  hoverinfo = 'text',
+  showlegend = FALSE
 ) %>%
   add_sf(
-    fillcolor = ~color,  # Correctly assign fill colors based on 'category'
-    line = list(color = "black", width = 1)  # Add black borders around each region
+    fillcolor = ~color,
+    line = list(color = "black", width = 1)
   ) %>%
   layout(
     geo = list(
       showland = TRUE,
       landcolor = "lightgray",
       bgcolor = "white",
-      projection = list(type = "mercator"),  # 2D map with Mercator projection
+      projection = list(type = "mercator"),
       visible = TRUE
     ),
     legend = list(
-      title = list(text = "Xu hướng dịch"),  # Tiêu đề cho chú giải
-      orientation = "v",  # Chú giải theo chiều dọc
-      x = 1.1,  # Vị trí chú giải sang phải
-      y = 1,  # Vị trí chú giải từ trên xuống dưới
-      bgcolor = "rgba(255,255,255,0.8)",  # Nền chú giải màu trắng trong suốt
-      bordercolor = "black",  # Viền chú giải màu đen
-      borderwidth = 1  # Độ dày viền chú giải
+      title = list(text = "Xu hướng lây nhiễm"),
+      orientation = "v",
+      x = 1.1,
+      y = 1,
+      bgcolor = "rgba(255,255,255,0.8)",
+      bordercolor = "black",
+      borderwidth = 1
     ),
-    hoverlabel = list(bgcolor = "white", font = list(size = 12)),  # Customize hover label
+    hoverlabel = list(bgcolor = "white", font = list(size = 12)),
     margin = list(l = 50, r = 50, t = 50, b = 50),
       annotations = list(
       list(
-        x = 1.1,  # Position to the right of the map
+        x = 1.1,
         y = 1,
         text = "<b>Xu hướng lây nhiễm:</b><br>
         <span style='color:#7f3f98;'>● Số ca đang tăng</span><br>
@@ -129,8 +132,20 @@ p_plotly <- plot_ly(
     )
   )
 
-# Show the plot
 p_plotly
+
+datatable(plot,
+          colnames = c("Quận/Huyện" = "NAME_2",
+                       "Ngày khởi phát" = "dates",
+                       "Xu hướng lây nhiễm" = "label",
+                       "Rt" = "rt",
+                       "Q1" = "q1_rt",
+                       "Q3" = "q3_rt")) %>%
+  formatRound(columns = c("Rt", "Q1", "Q3"), digits = 2) %>% 
+  formatStyle(
+    c("Rt", "Q1", "Q3"),
+    backgroundColor = styleInterval(c(80, 90), c('lightcoral', 'lightgreen', 'green'))
+  )
 ```
 
 **Nhận định chung:**

@@ -81,7 +81,7 @@ plot <- highlight_key(vn_qh_filter)
 
 p_plotly <- plot_ly(
   data = plot,
-  split = ~NAME_2,  
+  split = ~NAME_2,
   color = ~color,
   type = 'scatter',
   mode = 'none',
@@ -141,7 +141,7 @@ datatable(plot,
                        "Rt" = "rt",
                        "Q1" = "q1_rt",
                        "Q3" = "q3_rt")) %>%
-  formatRound(columns = c("Rt", "Q1", "Q3"), digits = 2) %>% 
+  formatRound(columns = c("Rt", "Q1", "Q3"), digits = 2) %>%
   formatStyle(
     c("Rt", "Q1", "Q3"),
     backgroundColor = styleInterval(c(80, 90), c('lightcoral', 'lightgreen', 'green'))
@@ -150,45 +150,47 @@ datatable(plot,
 
 **Nhận định chung:**
 
-**Đến ngày 17/10** xu hướng lây nhiễm của Sởi tại các số quận/huyện như sau:
+**Đến ngày 01/11** xu hướng lây nhiễm của Sởi tại các số quận/huyện như sau:
 
--   Huyện Bình Chánh: số ca nhiễm đang giảm R~t~ = 0,65 (0,44 - 0,91).
+-   Huyện Bình Chánh: số ca nhiễm đang giảm R~t~ = 0,68 (0,41 - 1,01).
 
--   TP. Thủ Đức: số ca nhiễm đang tăng R~t~ = 1,51 (1,15 - 1,93).
+-   TP. Thủ Đức: số ca nhiễm đang tăng R~t~ = 0,75 (0,54 - 1,69).
 
--   Quận 8: số ca nhiễm đang tăng Rt = 2,74 (1,54 - 4,29).
+-   Quận 8: số ca nhiễm đang tăng Rt = 1,19 (0,69 - 1,82).
 
--   Huyện Củ Chi: số ca nhiễm đang tăng R~t~ = 1,12 (0,73 - 1,59).
+-   Huyện Củ Chi: số ca nhiễm đang tăng R~t~ = 0,44 (0,21 - 0,75).
 
--   Quận Bình Tân: số ca nhiễm có thể tăng R~t~ = 0,89 (0,61 - 1,22).
+-   Quận Bình Tân: số ca nhiễm có thể tăng R~t~ = 1,53 (1,14 - 1,98).
 
--   Quận 12: số ca nhiễm ổn định R~t~ = 2,07 (1,16 - 3,24).
+-   Quận 12: số ca nhiễm ổn định R~t~ = 1,29 (0,77 - 1,93).
 
--   Quận Tân Phú: số ca nhiễm ổn định R~t~ = 3,28 (2,05 - 4,78).
+-   Quận Tân Phú: số ca nhiễm ổn định R~t~ = 1,16 (0,76 - 1,64).
 
--   Huyện Hóc Môn: số ca nhiễm có thể giảm R~t~ = 1,74 (1,05 - 2,60).
+-   Huyện Hóc Môn: số ca nhiễm có thể giảm R~t~ = 0,81 (0,44 - 1,28).
 
--   Các Quận/Huyện còn lại không ước tính được hệ số lây Rt (do không đủ dữ liệu).
+-   Các Quận/Huyện còn lại không ước tính được hệ số lây R~t~ (do không đủ dữ liệu).
 
-**Trong tuần từ 11/10 - 17/10,** dựa theo giá trị và khoảng tin cậy của R~t,~ xu hướng lây nhiễm của Thành phố và Quận/Huyện như sau:
+**Trong tuần từ 25/10 - 01/11,** dựa theo giá trị và khoảng tin cậy của R~t,~ xu hướng lây nhiễm của Thành phố và Quận/Huyện như sau:
 
--   Thành phố: R~t~ vẫn lớn hơn 1 với khoảng 99% khoảng tin cậy của R~t~ \> 1, do đó số ca nhiễm **đang tăng**.
+-   Thành phố: R~t~ giảm dưới 1, tuy nhiên khoảng khoảng tin cậy của R~t~ vẫn chứa 1, do đó số ca nhiễm **ổn định**.
 
--   Quận/Huyện: có 4 quận/huyện vẫn có R~t~ lớn hơn 1 (với trên 90% khoảng tin cậy của R~t~ \> 1 **(màu tím)** bao gồm: Hóc Môn, TP. Thủ Đức, Quận 8, Quận 12 và Tân Phú. Củ Chi có số ca nhiễm **ổn định**, Quận Bình Tân đang ở giai đoạn số ca nhiễm **có thể giảm** và Bình Chánh có số ca nhiễm **đang giảm (với dưới 10% KTC của R~t~ > 1 bắt đầu từ 12/10 đến hiện tại).**
+-   Quận/Huyện: Quận Bình Tân có số ca nhiễm **đang tăng** với R~t~ lớn hơn 1 (99% khoảng tin cậy của R~t~ \> 1 **(màu tím)**). Quận 12 có số ca nhiễm **có thể tăng**, Quận Tân Phú và Quận 8 có số ca nhiễm **ổn định**.
 
 **So với 1 tuần trước:**
 
--   Quận 12 và Tân Phú **tăng** báo động về số ca nhiễm **(từ màu cam thành màu tím)**.
+-   Quận Bình Tân **tăng** báo động về số ca nhiễm **(từ màu vàng thành màu tím)**.
 
--   Quận Bình Tân **giảm** báo động về có số ca nhiễm **(từ màu đỏ thành màu đỏ thành màu vàng)**.
+-   TP. Thủ Đức **giảm** báo động về số ca nhiễm **(từ màu tím thành màu xanh)**.
 
--   Quận 8 và TP. Thủ Đức vẫn giữ nguyên mức độ báo động số ca nhiễm **đang tăng (màu tím)**.
+-   Củ Chi **giảm** báo động về số ca nhiễm **(từ màu cam thành màu xanh)**.
 
--   Hóc Môn **tăng** báo động về số ca nhiễm **(từ màu vàng thành màu tím).**
+-   Hóc Môn **giảm** báo động về số ca nhiễm **(từ màu tím thành màu vàng)**.
 
--   Củ Chi **giảm** báo động về số ca nhiễm **(từ màu tím thành màu cam)**.
+-   Quận 12 **giảm** báo động về số ca nhiễm **(từ màu tím thành màu đỏ)**.
 
--   Bình Chánh **giảm** báo động về số ca nhiễm **(từ màu tím thành màu xanh)**.
+-   Quận 8 và Tân Phú **giảm** báo động về số ca nhiễm **(từ màu tím thành màu cam)**.
+
+-   Bình Chánh vẫn giữ nguyên về xu hướng số ca nhiễm **đang giảm (màu xanh)**.
 
 **Phân bố nhóm tuổi theo ngày khởi phát:**
 
@@ -200,8 +202,7 @@ datatable(plot,
 
 ```{r,  echo = F, warning=FALSE}
 ## Load data
-df <- readRDS("df_clean2010.rds")
-df <- filter(df, dates <= "2024-10-18")
+df <- readRDS("df_clean0511.rds")
 ```
 
 ```{r,  echo = F, warning=FALSE}
@@ -416,9 +417,7 @@ df_rt_plot <- filter(df_rt, dates >= "2024-07-12")
 
 p_rt <- plot_rt(df_rt_plot)
 
-p_hist
-
-p_rt
+subplot(p_hist, p_rt, nrows = 2, shareX = T)
 ```
 
 ::: {.callout-caution collapse="true"}
@@ -465,7 +464,7 @@ p_hist <- ggplot(df_new, aes(x = week)) +
           axis.text.y = element_text(size = 10),
           axis.title.x = element_text(size = 12),
           axis.title.y = element_text(size = 12)) + 
-    scale_x_continuous(breaks = seq(20, 42, by = 1), limits = c(20, 42))
+    scale_x_continuous(breaks = seq(20, 44, by = 1), limits = c(20, 42))
 
 df$ngaysinh <- as.Date(df$ngaysinh)
 df$age <- time_length(interval(df$ngaysinh, df$dates), "month")
@@ -497,7 +496,7 @@ p_agegr <- ggplot(df_plot, aes(x = week, y = log(cumn), color = agegr)) +
     geom_smooth(se = FALSE, span = 0.5, method = "loess", size = 1) + 
     scale_colour_lancet() +
     scale_y_continuous(expand = c(0, 0)) +
-    scale_x_continuous(breaks = seq(20, 42, by = 1), limits = c(20, 42)) +
+    scale_x_continuous(breaks = seq(20, 44, by = 1), limits = c(20, 42)) +
     labs(x = "Week onset", y = "Log cumulative case count", color = "Age group") +
     theme_classic() +
     theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
@@ -668,7 +667,7 @@ df_plot <- df_plot %>%
 #| label: fig-bc
 #| fig-cap: "Diễn tiến Rt của Bình Chánh"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 
 library(patchwork)
@@ -883,7 +882,7 @@ df_plot <- df_plot %>%
 #| label: fig-bta
 #| fig-cap: "Diễn tiến Rt của Bình Tân"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 library(patchwork)
 
@@ -1098,7 +1097,7 @@ df_plot <- df_plot %>%
 #| label: fig-td
 #| fig-cap: "Diễn tiến Rt của TP. Thủ Đức"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 library(patchwork)
 
@@ -1124,7 +1123,7 @@ p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
                                        ),
             hoverinfo = "text") %>%
   layout(
-    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
                  ),
     yaxis = list(title = "Incidence"),
     legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
@@ -1315,7 +1314,7 @@ df_plot <- df_plot %>%
 #| label: fig-hm
 #| fig-cap: "Diễn tiến Rt của Hóc Môn"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 
 library(patchwork)
@@ -1342,7 +1341,7 @@ p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
                                        ),
             hoverinfo = "text") %>%
   layout(
-    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
                  ),
     yaxis = list(title = "Incidence"),
     legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
@@ -1533,7 +1532,7 @@ df_plot <- df_plot %>%
 #| label: fig-q8
 #| fig-cap: "Diễn tiến Rt của Quận 8"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 
 library(patchwork)
@@ -1560,7 +1559,7 @@ p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
                                        ),
             hoverinfo = "text") %>%
   layout(
-    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
                  ),
     yaxis = list(title = "Incidence"),
     legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
@@ -1752,7 +1751,7 @@ df_plot <- df_plot %>%
 #| label: fig-cc
 #| fig-cap: "Diễn tiến Rt của Củ Chi"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 
 library(patchwork)
@@ -1779,7 +1778,7 @@ p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
                                        ),
             hoverinfo = "text") %>%
   layout(
-    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
                  ),
     yaxis = list(title = "Incidence"),
     legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
@@ -1970,7 +1969,7 @@ df_plot <- df_plot %>%
 #| label: fig-q12
 #| fig-cap: "Diễn tiến Rt của Quận 12"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 
 library(patchwork)
@@ -1997,7 +1996,7 @@ p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
                                        ),
             hoverinfo = "text") %>%
   layout(
-    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "W1"
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"
                  ),
     yaxis = list(title = "Incidence"),
     legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
@@ -2174,7 +2173,7 @@ df_plot <- df_plot %>%
 #| label: fig-tphu
 #| fig-cap: "Diễn tiến Rt của Tân Phú"
 #| fig-width: 15
-#| fig-height: 10
+#| fig-height: 7
 #| out-width: "100%"
 
 df_filter_plot <- filter(df_filter, dates >= "2024-09-10")
@@ -2199,7 +2198,7 @@ p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
                                        ),
             hoverinfo = "text") %>%
   layout(
-    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "D1"),
+    xaxis = list(title = "", tickangle = -60, tickformat = "%b %d", dtick = "M1"),
     yaxis = list(title = "Incidence"),
     legend = list(orientation = "h", x = 0.5, y = -0.2, xanchor = "center"),
     plot_bgcolor = 'white',

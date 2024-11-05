@@ -111,6 +111,9 @@ plot_rt <- function(data){
 #| echo: false
 #| warning: false
 #| message: false
+#| fig-width: 15
+#| fig-height: 7
+#| out-width: "100%"
 
 df_complete <- df_complete %>%
   mutate(mva_14d = slide_dbl(
@@ -142,6 +145,9 @@ ggplot(df_2018, aes(x = dates)) +
 #| echo: false
 #| message: false
 #| warning: false
+#| fig-width: 15
+#| fig-height: 7
+#| out-width: "100%"
 
 df_filter <- filter(df_complete, dates >= "2018-09-01" & dates <= "2020-03-31")
 p_hist <- ggplot(df_filter, aes(x = dates)) +
@@ -167,7 +173,9 @@ p_hist <- ggplot(df_filter, aes(x = dates)) +
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-height: 10
+#| fig-width: 15
+#| fig-height: 7
+#| out-width: "100%"
 
 library(patchwork)
 
@@ -261,7 +269,10 @@ plot_rt <- function(data){
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-height: 10
+#| fig-width: 15
+#| fig-height: 7
+#| out-width: "100%"
+
 library(patchwork)
 
 df_filter_plot <- filter(df_filter, dates >= "2018-10-01")
@@ -341,7 +352,10 @@ p_hist <- ggplot(df_filter, aes(x = week_center)) +
 #| echo: false
 #| message: false
 #| warning: false
-#| fig-height: 10
+#| fig-width: 15
+#| fig-height: 7
+#| out-width: "100%"
+
 library(patchwork)
 library(ggsci)
 

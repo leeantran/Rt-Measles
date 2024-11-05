@@ -460,10 +460,10 @@ p_hist <- ggplot(df_new, aes(x = week)) +
                    color = "white") +
     labs(x = NULL, y = "Incidence", fill = NULL, color = NULL) +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.x = element_text(size = 12),
-          axis.title.y = element_text(size = 12)) + 
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.x = element_text(size = 16),
+          axis.title.y = element_text(size = 16)) + 
     scale_x_continuous(breaks = seq(20, 44, by = 1), limits = c(20, 42))
 
 df$ngaysinh <- as.Date(df$ngaysinh)
@@ -499,10 +499,13 @@ p_agegr <- ggplot(df_plot, aes(x = week, y = log(cumn), color = agegr)) +
     scale_x_continuous(breaks = seq(20, 44, by = 1), limits = c(20, 42)) +
     labs(x = "Week onset", y = "Log cumulative case count", color = "Age group") +
     theme_classic() +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 10),
-          axis.text.y = element_text(size = 10),
-          axis.title.x = element_text(size = 12),
-          axis.title.y = element_text(size = 12))
+    theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.x = element_text(size = 16),
+          axis.title.y = element_text(size = 16),
+          legend.text = element_text(size = 18),
+          legend.title = element_text(size = 18),
+          legend.position = "bottom")
 
 
 p_hist / p_agegr

@@ -112,7 +112,7 @@ plot_rt <- function(data){
 #| warning: false
 #| message: false
 #| fig-width: 15
-#| fig-height: 7
+#| fig-height: 10
 #| out-width: "100%"
 
 df_complete <- df_complete %>%
@@ -174,7 +174,7 @@ p_hist <- ggplot(df_filter, aes(x = dates)) +
 #| warning: false
 #| message: false
 #| fig-width: 15
-#| fig-height: 7
+#| fig-height: 10
 #| out-width: "100%"
 
 library(patchwork)
@@ -270,7 +270,7 @@ plot_rt <- function(data){
 #| message: false
 #| warning: false
 #| fig-width: 15
-#| fig-height: 7
+#| fig-height: 10
 #| out-width: "100%"
 
 library(patchwork)
@@ -353,7 +353,7 @@ p_hist <- ggplot(df_filter, aes(x = week_center)) +
 #| message: false
 #| warning: false
 #| fig-width: 15
-#| fig-height: 7
+#| fig-height: 10
 #| out-width: "100%"
 
 library(patchwork)

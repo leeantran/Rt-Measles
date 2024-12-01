@@ -152,21 +152,21 @@ datatable(plot,
 
 **Đến ngày 01/11** xu hướng lây nhiễm của Sởi tại các số quận/huyện như sau:
 
--   Huyện Bình Chánh: số ca nhiễm đang giảm R~t~ = 0,68 (0,41 - 1,01).
+-   Huyện Bình Chánh: số ca nhiễm **đang giảm** R~t~ = 0,68 (0,41 - 1,01).
 
--   TP. Thủ Đức: số ca nhiễm đang tăng R~t~ = 0,75 (0,54 - 1,69).
+-   TP. Thủ Đức: số ca nhiễm **đang giảm** R~t~ = 0,75 (0,54 - 1,69).
 
--   Quận 8: số ca nhiễm đang tăng Rt = 1,19 (0,69 - 1,82).
+-   Quận 8: số ca nhiễm **ổn định** R~t~ = 1,19 (0,69 - 1,82).
 
--   Huyện Củ Chi: số ca nhiễm đang tăng R~t~ = 0,44 (0,21 - 0,75).
+-   Huyện Củ Chi: số ca nhiễm **đang giảm** R~t~ = 0,44 (0,21 - 0,75).
 
--   Quận Bình Tân: số ca nhiễm có thể tăng R~t~ = 1,53 (1,14 - 1,98).
+-   Quận Bình Tân: số ca nhiễm **đang tăng** R~t~ = 1,53 (1,14 - 1,98).
 
--   Quận 12: số ca nhiễm ổn định R~t~ = 1,29 (0,77 - 1,93).
+-   Quận 12: số ca nhiễm **có thể tăng** R~t~ = 1,29 (0,77 - 1,93).
 
--   Quận Tân Phú: số ca nhiễm ổn định R~t~ = 1,16 (0,76 - 1,64).
+-   Quận Tân Phú: số ca nhiễm **ổn định** R~t~ = 1,16 (0,76 - 1,64).
 
--   Huyện Hóc Môn: số ca nhiễm có thể giảm R~t~ = 0,81 (0,44 - 1,28).
+-   Huyện Hóc Môn: số ca nhiễm **có thể giảm** R~t~ = 0,81 (0,44 - 1,28).
 
 -   Các Quận/Huyện còn lại không ước tính được hệ số lây R~t~ (do không đủ dữ liệu).
 
@@ -202,7 +202,7 @@ datatable(plot,
 
 ```{r,  echo = F, warning=FALSE}
 ## Load data
-df <- readRDS("df_clean0511.rds")
+df <- readRDS("df_clean0112.rds")
 ```
 
 ```{r,  echo = F, warning=FALSE}
@@ -464,7 +464,7 @@ p_hist <- ggplot(df_new, aes(x = week)) +
           axis.text.y = element_text(size = 14),
           axis.title.x = element_text(size = 16),
           axis.title.y = element_text(size = 16)) + 
-    scale_x_continuous(breaks = seq(20, 44, by = 1), limits = c(20, 42))
+    scale_x_continuous(breaks = seq(20, 48, by = 1), limits = c(20, 48))
 
 df$ngaysinh <- as.Date(df$ngaysinh)
 df$age <- time_length(interval(df$ngaysinh, df$dates), "month")
@@ -496,7 +496,7 @@ p_agegr <- ggplot(df_plot, aes(x = week, y = log(cumn), color = agegr)) +
     geom_smooth(se = FALSE, span = 0.5, method = "loess", size = 1) + 
     scale_colour_lancet() +
     scale_y_continuous(expand = c(0, 0)) +
-    scale_x_continuous(breaks = seq(20, 44, by = 1), limits = c(20, 42)) +
+    scale_x_continuous(breaks = seq(20, 48, by = 1), limits = c(20, 48)) +
     labs(x = "Week onset", y = "Log cumulative case count", color = "Age group") +
     theme_classic() +
     theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 14),
@@ -1541,7 +1541,7 @@ df_plot <- df_plot %>%
 library(patchwork)
 
 # Biểu đồ đường cong dịch
-df_filter_plot <- filter(df_filter, dates >= "2024-09-02")
+df_filter_plot <- filter(df_filter, dates >= "2024-09-02" & dates <= "2024-11-18")
 p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
   add_bars(y = ~I, 
            name = "Cases",
@@ -1978,7 +1978,7 @@ df_plot <- df_plot %>%
 library(patchwork)
 
 # Biểu đồ đường cong dịch
-df_filter_plot <- filter(df_filter, dates >= "2024-08-25")
+df_filter_plot <- filter(df_filter, dates >= "2024-08-25" & dates <= "2024-11-20")
 p_hist <- plot_ly(df_filter_plot, x = ~dates) %>%
   add_bars(y = ~I, 
            name = "Cases",
